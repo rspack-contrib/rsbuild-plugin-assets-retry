@@ -64,6 +64,7 @@ type AssetsRetryOptions = {
   test?: string | ((url: string) => boolean);
   crossOrigin?: boolean | "anonymous" | "use-credentials";
   inlineScript?: boolean;
+  delay?: number | ((context: AssetsRetryHookContext) => number);
   onRetry?: (context: AssetsRetryHookContext) => void;
   onSuccess?: (context: AssetsRetryHookContext) => void;
   onFail?: (context: AssetsRetryHookContext) => void;
@@ -79,6 +80,7 @@ const defaultOptions = {
   max: 3,
   test: "",
   crossOrigin: false,
+  delay: 0,
   onRetry: () => {},
   onSuccess: () => {},
   onFail: () => {},
