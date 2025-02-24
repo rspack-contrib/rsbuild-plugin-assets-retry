@@ -1,6 +1,6 @@
-import { gotoPage, proxyConsole } from './helper';
 import { expect, test } from '@playwright/test';
 import { logger } from '@rsbuild/core';
+import { gotoPage, proxyConsole } from './helper';
 import { createBlockMiddleware, createRsbuildWithMiddleware } from './helper';
 
 test('should apply fixed delay for initial chunk retries', async ({ page }) => {

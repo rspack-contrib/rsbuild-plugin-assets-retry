@@ -1,6 +1,6 @@
-import { getRandomPort, gotoPage, proxyConsole } from './helper';
 import { expect, test } from '@playwright/test';
 import { logger } from '@rsbuild/core';
+import { getRandomPort, gotoPage, proxyConsole } from './helper';
 import {
   count404Response,
   createBlockMiddleware,

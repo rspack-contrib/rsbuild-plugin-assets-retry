@@ -1,5 +1,5 @@
-import { getRandomPort, gotoPage } from './helper';
 import { expect, test } from '@playwright/test';
+import { getRandomPort, gotoPage } from './helper';
 import {
   createBlockMiddleware,
   createRsbuildWithMiddleware,

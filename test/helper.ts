@@ -1,8 +1,8 @@
 import { stripVTControlCharacters as stripAnsi } from 'node:util';
 import type { Page } from '@playwright/test';
-import { createRsbuild, type RequestHandler } from '@rsbuild/core';
-import { pluginAssetsRetry, type PluginAssetsRetryOptions } from '../dist';
+import { type RequestHandler, createRsbuild } from '@rsbuild/core';
 import { pluginReact } from '@rsbuild/plugin-react';
+import { type PluginAssetsRetryOptions, pluginAssetsRetry } from '../dist';
 
 const portMap = new Map();
 
