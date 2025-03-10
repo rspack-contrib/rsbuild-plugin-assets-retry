@@ -97,8 +97,16 @@ const defaultOptions = {
 比如：
 
 ```js
-pluginAssetsRetry({
-  domain: ["https://cdn1.com", "https://cdn2.com", "https://cdn3.com"],
+// rsbuild.config.ts
+defineConfig({
+  plugins: [
+    pluginAssetsRetry({
+      domain: ["https://cdn1.com", "https://cdn2.com", "https://cdn3.com"],
+    })
+  ],
+  output: {
+    assetPrefix: "https://cdn1.com",
+  },
 });
 ```
 
