@@ -94,7 +94,7 @@ const defaultAssetsRetryOptions = {
 - **Type:** `string[]`
 - **Default:** `[]`
 
-Specifies the retry domain when assets fail to load. In the `domain` array, the first item is the currently used domain, and the following items are backup domains. When a asset request for a domain fails, Rsbuild will find that domain in the array and replace it with the next domain in the array.
+Specifies the retry domain when assets fail to load. In the `domain` array, the first item is the default domain of static assets, and the following items are backup domains. When a asset request for a domain fails, Rsbuild will find that domain in the array and replace it with the next domain in the array.
 
 For example:
 
