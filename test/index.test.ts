@@ -112,3 +112,40 @@ test('should work when the first, second cdn are all failed and the third is suc
   await expect(compTestElement).toHaveText('Hello AsyncCompTest');
   await expect(compTestElement).toHaveCSS('background-color', 'rgb(0, 0, 139)');
 });
+
+
+test('should work when the first, second cdn are all failed and the third is success, domain is prefixed with //', async ({
+  page,
+}) => {
+  // this is a real world case for assets-retry
+  const port = await getRandomPort();
+  const rsbuild = await createRsbuildWithMiddleware(
+    [],
+    {
+      minify: true,
+      domain: [
+        'a.com/foo-path',
+        'b.com',
+        `localhost:${port}`,
+      ],
+      addQuery: true,
+      onRetry(context) {
+        console.info('onRetry', context);
+      },
+      onSuccess(context) {
+        console.info('onSuccess', context);
+      },
+      onFail(context) {
+        console.info('onFail', context);
+      },
+    },
+    undefined,
+    port,
+    '//a.com/foo-path',
+  );
+
+  await gotoPage(page, rsbuild);
+  const compTestElement = page.locator('#async-comp-test');
+  await expect(compTestElement).toHaveText('Hello AsyncCompTest');
+  await expect(compTestElement).toHaveCSS('background-color', 'rgb(0, 0, 139)');
+});

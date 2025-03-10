@@ -140,13 +140,13 @@ function initRetry(chunkId: string, isCssAsyncChunk: boolean): Retry {
   }
 
   const originalPublicPath = __RUNTIME_GLOBALS_PUBLIC_PATH__;
-  const originalSrcUrl = originalPublicPath.startsWith('/')
+  const originalSrcUrl = originalPublicPath.startsWith('/') && !(originalPublicPath.startsWith('//'))
     ? window.origin + originalPublicPath + originalScriptFilename
     : originalPublicPath + originalScriptFilename;
   const originalQuery = getQueryFromUrl(originalSrcUrl);
 
   const existRetryTimes = 0;
-  const nextDomain = config.domain?.[0] || window.origin;
+  const nextDomain = findCurrentDomain(originalSrcUrl);
 
   return {
     nextDomain,
