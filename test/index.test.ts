@@ -87,9 +87,9 @@ test('should work when the first, second cdn are all failed and the third is suc
     {
       minify: true,
       domain: [
-        'http://a.com/foo-path',
-        'http://b.com',
-        `http://localhost:${port}`,
+        'a.com/foo-path',
+        'b.com',
+        `localhost:${port}`,
       ],
       addQuery: true,
       onRetry(context) {
