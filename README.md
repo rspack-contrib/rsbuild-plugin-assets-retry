@@ -108,7 +108,7 @@ defineConfig({
   ],
   output: {
     assetPrefix: "https://cdn1.com",
-  }
+  },
 });
 ```
 

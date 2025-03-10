@@ -113,7 +113,6 @@ test('should work when the first, second cdn are all failed and the third is suc
   await expect(compTestElement).toHaveCSS('background-color', 'rgb(0, 0, 139)');
 });
 
-
 test('should work when the first, second cdn are all failed and the third is success, domain is prefixed with //', async ({
   page,
 }) => {
@@ -123,11 +122,7 @@ test('should work when the first, second cdn are all failed and the third is suc
     [],
     {
       minify: true,
-      domain: [
-        'a.com/foo-path',
-        'b.com',
-        `localhost:${port}`,
-      ],
+      domain: ['a.com/foo-path', 'b.com', `localhost:${port}`],
       addQuery: true,
       onRetry(context) {
         console.info('onRetry', context);
