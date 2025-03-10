@@ -103,11 +103,11 @@ For example:
 defineConfig({
   plugins: [
     pluginAssetsRetry({
-      domain: ["https://cdn1.com", "https://cdn2.com", "https://cdn3.com"],
+      domain: ["cdn1.com", "cdn2.com", "cdn3.com"],
     })
   ],
   output: {
-    assetPrefix: "https://cdn1.com",
+    assetPrefix: "https://cdn1.com", // or "//cdn1.com"
   },
 });
 ```
