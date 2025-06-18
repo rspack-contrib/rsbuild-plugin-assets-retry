@@ -46,9 +46,18 @@ function getRequestUrl(element: HTMLElement) {
     element instanceof HTMLScriptElement ||
     element instanceof HTMLImageElement
   ) {
+    // For <script src="" /> or <img src="" />
+    // element.getAttribute('src') === '' but element.src === baseURI
+    if (!element.getAttribute('src')) {
+      return null;
+    }
     return element.src;
   }
   if (element instanceof HTMLLinkElement) {
+    // For <link href="" />
+    if (!element.getAttribute('href')) {
+      return null;
+    }
     return element.href;
   }
   return null;
