@@ -213,3 +213,58 @@ test('should work with multiple rules for initial chunks', async ({ page }) => {
 
   await rsbuild.server.close();
 });
+
+test('should work with function tester in multiple rules for initial chunks (CSS)', async ({ page }) => {
+  const { logs, restore } = proxyConsole();
+  const blockedMiddleware = createBlockMiddleware({
+    blockNum: 2, // Block 2 times so we can see retry behavior
+    urlPrefix: '/static/css/index.css',
+  });
+
+  const rsbuild = await createRsbuildWithMiddleware(blockedMiddleware, [
+    {
+      // This function should return false for CSS files, so rule should be skipped
+      test: (url: string) => url.includes('NonExistentPattern'),
+      max: 1,
+      type: ['link'],
+      onRetry(context) {
+        console.info('onRetry', context);
+      },
+      onFail(context) {
+        console.info('onFail', context);
+      },
+    },
+    {
+      // This function should return true and match the CSS file
+      test: (url: string) => url.includes('.css'),
+      max: 2,
+      type: ['link'],
+      onRetry(context) {
+        console.info('onRetry', context);
+      },
+      onSuccess(context) {
+        console.info('onSuccess', context);
+      },
+    },
+  ]);
+
+  const { onRetryContextList, onSuccessContextList } = await proxyPageConsole(
+    page,
+    rsbuild.port,
+  );
+
+  await gotoPage(page, rsbuild);
+  await delay(1000);
+
+  // Should retry 2 times with the second rule (function that returns true) and then succeed
+  expect(onRetryContextList).toHaveLength(2);
+  expect(onSuccessContextList).toHaveLength(1);
+  expect(onSuccessContextList[0].times).toBe(2);
+
+  // Verify the CSS file was loaded correctly
+  const compTestElement = page.locator('#comp-test');
+  await expect(compTestElement).toHaveText('Hello CompTest');
+
+  await rsbuild.server.close();
+  restore();
+});

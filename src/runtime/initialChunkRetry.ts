@@ -113,11 +113,13 @@ function validateTargetInfo(
     // Check test condition
     let tester = rule.test;
     if (tester) {
-      if (typeof tester === 'string') {
+      if (tester instanceof RegExp) {
+        if (!tester.test(url)) continue;
+      } else if (typeof tester === 'string') {
         const regexp = new RegExp(tester);
         tester = (str: string) => regexp.test(str);
       }
-      if (typeof tester !== 'function' || !tester(url)) {
+      if (typeof tester === 'function' && !tester(url)) {
         continue;
       }
     }
