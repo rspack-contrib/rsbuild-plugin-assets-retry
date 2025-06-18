@@ -43,6 +43,21 @@ function getRequestUrl(element: HTMLElement) {
     element instanceof HTMLScriptElement ||
     element instanceof HTMLImageElement
   ) {
+    // There are two cases for src attribute:
+    // 1. src not set (<script> or <img>):
+    //    - element.getAttribute('src') returns null
+    //    - element.src returns empty string
+    // 2. src set to empty or whitespace (<script src="">, <script src=" ">, <img src="">, <img src=" ">):
+    //    - element.getAttribute('src') returns "", " ", etc.
+    //    - element.src returns current page URL
+    // We use getAttribute and trim to detect both cases to prevent unnecessary retries
+    // MDN docs:
+    // - HTMLImageElement.src: https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/src
+    // - HTMLScriptElement.src: https://developer.mozilla.org/en-US/docs/Web/API/HTMLScriptElement/src
+    const src = element.getAttribute('src');
+    if (!src || !src.trim()) {
+      return null;
+    }
     return element.src;
   }
   if (element instanceof HTMLLinkElement) {

@@ -10,5 +10,12 @@ function case2() {
   document.head.appendChild(script);
 }
 
+function case3() {
+  const script = document.createElement('script');
+  script.src = '  ';
+  document.head.appendChild(script);
+}
+
 case1();
 case2();
+case3();
