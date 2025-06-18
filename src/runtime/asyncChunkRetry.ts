@@ -107,13 +107,13 @@ function findMatchingRule(url: string): RuntimeRetryOptions {
       if (tester instanceof RegExp) {
         if (!tester.test(url)) continue;
       } else if (typeof tester === 'string') {
-         const regexp = new RegExp(tester);
-         tester = (str: string) => regexp.test(str);
+        const regexp = new RegExp(tester);
+        tester = (str: string) => regexp.test(str);
       }
       if (typeof tester === 'function' && !tester(url)) {
-         continue;
-       }
-     }
+        continue;
+      }
+    }
 
     // Check domain condition
     const domain = findCurrentDomain(url, rule.domain || []);

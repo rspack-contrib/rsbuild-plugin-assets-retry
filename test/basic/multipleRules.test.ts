@@ -2,7 +2,6 @@ import { expect, test } from '@playwright/test';
 import { logger } from '@rsbuild/core';
 import { gotoPage, proxyConsole } from './helper';
 import {
-  count404ResponseByUrl,
   createBlockMiddleware,
   createRsbuildWithMiddleware,
   delay,
