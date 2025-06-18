@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type Rspack, rspack } from '@rsbuild/core';
 import serialize from 'serialize-javascript';
-import type { PluginAssetsRetryOptions, RuntimeRetryOptions } from './types.js';
+import type { RuntimeRetryRules } from './types.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -58,23 +58,20 @@ function pick<T, U extends keyof T>(obj: T, keys: ReadonlyArray<U>) {
   );
 }
 
+type AsyncChunkRetryPluginOptions = {
+  options: RuntimeRetryRules;
+  minify: boolean;
+  isRspack: boolean;
+};
+
 class AsyncChunkRetryPlugin implements Rspack.RspackPluginInstance {
   readonly name = 'ASYNC_CHUNK_RETRY_PLUGIN';
-  readonly options: PluginAssetsRetryOptions & { isRspack: boolean };
-  readonly runtimeOptions: RuntimeRetryOptions;
+  readonly options: AsyncChunkRetryPluginOptions;
+  readonly runtimeOptions: RuntimeRetryRules;
 
-  constructor(options: PluginAssetsRetryOptions & { isRspack: boolean }) {
+  constructor(options: AsyncChunkRetryPluginOptions) {
     this.options = options;
-    this.runtimeOptions = pick(options, [
-      'domain',
-      'max',
-      'onRetry',
-      'onSuccess',
-      'onFail',
-      'addQuery',
-      'test',
-      'delay',
-    ]);
+    this.runtimeOptions = options.options;
   }
 
   getRawRuntimeRetryCode(): string {

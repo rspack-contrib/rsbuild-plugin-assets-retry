@@ -14,7 +14,7 @@ export type PluginAssetsRetryOptions = {
   /**
    * The test function of the asset to be retried.
    */
-  test?: string | ((url: string) => boolean);
+  test?: string | RegExp | ((url: string) => boolean);
   /**
    * Specifies the retry domain when assets fail to load.
    */
@@ -67,6 +67,8 @@ export type RuntimeRetryOptions = Omit<
   PluginAssetsRetryOptions,
   'inlineScript' | 'minify'
 >;
+
+export type RuntimeRetryRules = PluginAssetsRetryOptions[];
 
 export type AssetsRetryHookContext = {
   url: string;

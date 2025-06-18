@@ -89,6 +89,41 @@ const defaultAssetsRetryOptions = {
 };
 ```
 
+### Multiple Rules
+
+The plugin supports configuring multiple retry rules, similar to webpack loaders configuration. Each rule can have different retry strategies for different resources.
+
+When using multiple rules, the plugin will find the first matching rule for each resource based on the `test` and `domain` conditions. If no rule matches, the default configuration will be used.
+
+Rules are evaluated in order, and the first matching rule will be applied:
+
+```ts
+pluginAssetsRetry([
+  {
+    // Rule 1: For specific CDN domain with pattern matching
+    domain: ["cdn1.com", "cdn2.com"],
+    test: /critical\.(js|css)$/,
+    max: 5,
+    onRetry: (context) => {
+      console.log(`Critical asset retry: ${context.url}`);
+    },
+  },
+  {
+    // Rule 2: For images with different retry count
+    test: /\.(png|jpg|jpeg|gif|svg)$/,
+    max: 2,
+    onRetry: (context) => {
+      console.log(`Image retry: ${context.url}`);
+    },
+  },
+  {
+    // Rule 3: General rule for other resources
+    domain: ["cdn3.com"],
+    max: 3,
+  }
+]);
+```
+
 ### domain
 
 - **Type:** `string[]`

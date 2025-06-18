@@ -87,6 +87,41 @@ const defaultOptions = {
 };
 ```
 
+
+### 多规则配置
+插件支持配置多个重试规则，类似于 webpack loaders 的配置方式。每个规则可以针对不同的资源使用不同的重试策略。
+
+使用多规则时，插件会根据 `test` 和 `domain` 条件为每个资源找到第一个匹配的规则。如果没有规则匹配，将使用默认配置。
+
+规则按顺序评估，第一个匹配的规则将被应用：
+
+```ts
+pluginAssetsRetry([
+  {
+    // 规则 1：针对特定 CDN 域名和模式匹配的关键资源
+    domain: ["cdn1.com", "cdn2.com"],
+    test: /critical\.(js|css)$/,
+    max: 5,
+    onRetry: (context) => {
+      console.log(`关键资源重试: ${context.url}`);
+    },
+  },
+  {
+    // 规则 2：针对图片资源使用不同的重试次数
+    test: /\.(png|jpg|jpeg|gif|svg)$/,
+    max: 2,
+    onRetry: (context) => {
+      console.log(`图片重试: ${context.url}`);
+    },
+  },
+  {
+    // 规则 3：其他资源的通用规则
+    domain: ["cdn3.com"],
+    max: 3,
+  }
+]);
+```
+
 ### domain
 
 - **类型：** `string[]`

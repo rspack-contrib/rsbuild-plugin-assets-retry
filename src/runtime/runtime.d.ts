@@ -3,3 +3,4 @@
 declare type CrossOrigin = import('@rsbuild/core').CrossOrigin;
 declare type AssetsRetryHookContext = import('../types.js').AssetsRetryHookContext;
 declare type RuntimeRetryOptions = import('../types.js').RuntimeRetryOptions;
+declare type RuntimeRetryRules = import('../types.js').RuntimeRetryRules;
