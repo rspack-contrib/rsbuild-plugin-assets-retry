@@ -45,14 +45,14 @@ function getRequestUrl(element: HTMLElement) {
   ) {
     // For <script src="" /> or <img src="" />
     // element.getAttribute('src') === '' but element.src === baseURI
-    if (!element.getAttribute('src')) {
+    if (!element.getAttribute('src')?.trim()) {
       return null;
     }
     return element.src;
   }
   if (element instanceof HTMLLinkElement) {
     // For <link href="" />
-    if (!element.getAttribute('href')) {
+    if (!element.getAttribute('href')?.trim()) {
       return null;
     }
     return element.href;
