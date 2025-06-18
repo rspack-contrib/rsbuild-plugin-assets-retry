@@ -16,7 +16,7 @@ const TAG_TYPE: { [propName: string]: new () => HTMLElement } = {
 declare global {
   // global variables shared with async chunk
   var __RB_ASYNC_CHUNKS__: Record<string, boolean>;
-  var __RUNTIME_GLOBALS_OPTIONS__: RuntimeRetryOptions;
+  var __RUNTIME_GLOBALS_OPTIONS__: RuntimeRetryRules;
 }
 
 // this function is the same as async chunk retry
@@ -33,9 +33,12 @@ function findCurrentDomain(url: string, domains: string[]) {
 
 // this function is the same as async chunk retry
 function findNextDomain(url: string, domains: string[]) {
+  if (domains.length === 0) {
+    return findCurrentDomain(url, domains);
+  }
   const currentDomain = findCurrentDomain(url, domains);
   const index = domains.indexOf(currentDomain);
-  return domains[(index + 1) % domains.length] || url;
+  return domains[(index + 1) % domains.length] || currentDomain;
 }
 
 function getRequestUrl(element: HTMLElement) {
@@ -52,16 +55,22 @@ function getRequestUrl(element: HTMLElement) {
 }
 
 function validateTargetInfo(
-  config: RuntimeRetryOptions,
+  rules: RuntimeRetryRules,
   e: Event,
-): { target: HTMLElement; tagName: string; url: string } | false {
+):
+  | {
+      target: HTMLElement;
+      tagName: string;
+      url: string;
+      rule: RuntimeRetryOptions;
+    }
+  | false {
   const target: HTMLElement = e.target as HTMLElement;
   const tagName = target.tagName.toLocaleLowerCase();
-  const allowTags = config.type!;
   const url = getRequestUrl(target);
+
   if (
     !tagName ||
-    allowTags.indexOf(tagName) === -1 ||
     !TAG_TYPE[tagName] ||
     !(target instanceof TAG_TYPE[tagName]) ||
     !url
@@ -69,7 +78,68 @@ function validateTargetInfo(
     return false;
   }
 
-  return { target, tagName, url };
+  // If no rules provided, use default rule
+  if (!rules || rules.length === 0) {
+    const defaultRule: RuntimeRetryOptions = {
+      max: 3,
+      type: ['link', 'script', 'img'],
+      domain: [],
+      crossOrigin: false,
+      delay: 0,
+    };
+
+    if (defaultRule.type!.indexOf(tagName) !== -1) {
+      return { target, tagName, url, rule: defaultRule };
+    }
+    return false;
+  }
+
+  // Find the first matching rule
+  for (const rule of rules) {
+    const allowTags = rule.type!;
+    if (allowTags.indexOf(tagName) === -1) {
+      continue;
+    }
+
+    // Check test condition
+    let tester = rule.test;
+    if (tester) {
+      if (typeof tester === 'string') {
+        const regexp = new RegExp(tester);
+        tester = (str: string) => regexp.test(str);
+      }
+      if (typeof tester !== 'function' || !tester(url)) {
+        continue;
+      }
+    }
+
+    // Check domain condition
+    const domain = findCurrentDomain(url, rule.domain!);
+    if (
+      rule.domain &&
+      rule.domain.length > 0 &&
+      rule.domain.indexOf(domain) === -1
+    ) {
+      continue;
+    }
+
+    return { target, tagName, url, rule };
+  }
+
+  // If no rule matches, use default rule
+  const defaultRule: RuntimeRetryOptions = {
+    max: 3,
+    type: ['link', 'script', 'img'],
+    domain: [],
+    crossOrigin: false,
+    delay: 0,
+  };
+
+  if (defaultRule.type!.indexOf(tagName) !== -1) {
+    return { target, tagName, url, rule: defaultRule };
+  }
+
+  return false;
 }
 
 const postfixRE = /[?#].*$/;
@@ -175,13 +245,13 @@ function reloadElementResource(
   }
 }
 
-function retry(config: RuntimeRetryOptions, e: Event) {
-  const targetInfo = validateTargetInfo(config, e);
+function retry(rules: RuntimeRetryRules, e: Event) {
+  const targetInfo = validateTargetInfo(rules, e);
   if (targetInfo === false) {
     return;
   }
 
-  const { target, tagName, url } = targetInfo;
+  const { target, tagName, url, rule: config } = targetInfo;
 
   // If the requested failed chunk is async chunk，skip it, because async chunk will be retried by asyncChunkRetry runtime
   if (
@@ -193,28 +263,8 @@ function retry(config: RuntimeRetryOptions, e: Event) {
     return;
   }
 
-  // Filter by config.test and config.domain
-  let tester = config.test;
-  if (tester) {
-    if (typeof tester === 'string') {
-      const regexp = new RegExp(tester);
-      tester = (str: string) => regexp.test(str);
-    }
-
-    if (typeof tester !== 'function' || !tester(url)) {
-      return;
-    }
-  }
-
+  // Domain is already validated in validateTargetInfo
   const domain = findCurrentDomain(url, config.domain!);
-
-  if (
-    config.domain &&
-    config.domain.length > 0 &&
-    config.domain.indexOf(domain) === -1
-  ) {
-    return;
-  }
 
   // If the retry times has exceeded the maximum, fail
   const existRetryTimes = Number(target.dataset.rbRetryTimes) || 0;
@@ -306,12 +356,12 @@ function retry(config: RuntimeRetryOptions, e: Event) {
   }
 }
 
-function load(config: RuntimeRetryOptions, e: Event) {
-  const targetInfo = validateTargetInfo(config, e);
+function load(rules: RuntimeRetryRules, e: Event) {
+  const targetInfo = validateTargetInfo(rules, e);
   if (targetInfo === false) {
     return;
   }
-  const { target, tagName, url } = targetInfo;
+  const { target, tagName, url, rule: config } = targetInfo;
   const domain = findCurrentDomain(url, config.domain!);
   const retryTimes = Number(target.dataset.rbRetryTimes) || 0;
   if (retryTimes === 0) {
@@ -362,18 +412,18 @@ if (typeof window !== 'undefined' && !window.__RB_ASYNC_CHUNKS__) {
 }
 // Bind event in window
 try {
-  const config = __RUNTIME_GLOBALS_OPTIONS__;
+  const rules = __RUNTIME_GLOBALS_OPTIONS__;
   resourceMonitor(
     (e: Event) => {
       try {
-        retry(config, e);
+        retry(rules, e);
       } catch (err) {
         console.error('retry error captured', err);
       }
     },
     (e: Event) => {
       try {
-        load(config, e);
+        load(rules, e);
       } catch (err) {
         console.error('load error captured', err);
       }

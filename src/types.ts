@@ -68,6 +68,8 @@ export type RuntimeRetryOptions = Omit<
   'inlineScript' | 'minify'
 >;
 
+export type RuntimeRetryRules = PluginAssetsRetryOptions[];
+
 export type AssetsRetryHookContext = {
   url: string;
   times: number;
