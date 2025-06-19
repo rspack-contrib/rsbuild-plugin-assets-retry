@@ -9,7 +9,10 @@ import type {
 import { ensureAssetPrefix } from '@rsbuild/core';
 import serialize from 'serialize-javascript';
 import { AsyncChunkRetryPlugin } from './AsyncChunkRetryPlugin.js';
-import type { PluginAssetsRetryOptions } from './types.js';
+import type {
+  NormalizedRuntimeRetryOptions,
+  PluginAssetsRetryOptions,
+} from './types.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -19,17 +22,18 @@ export const PLUGIN_ASSETS_RETRY_NAME = 'rsbuild:assets-retry';
 
 function getRuntimeOptions(
   userOptions: PluginAssetsRetryOptions,
-): RuntimeRetryOptions {
+): NormalizedRuntimeRetryOptions {
   const { inlineScript, minify, ...restOptions } = userOptions;
-  const defaultOptions: RuntimeRetryOptions = {
+  const defaultOptions: NormalizedRuntimeRetryOptions = {
     max: 3,
     type: ['link', 'script', 'img'],
     domain: [],
     crossOrigin: false,
     delay: 0,
+    addQuery: false,
   };
 
-  const result: RuntimeRetryOptions = {
+  const result: NormalizedRuntimeRetryOptions = {
     ...defaultOptions,
     ...restOptions,
   };
@@ -49,7 +53,7 @@ function getRuntimeOptions(
 }
 
 async function getRetryCode(
-  options: RuntimeRetryOptions,
+  options: NormalizedRuntimeRetryOptions,
   minify: boolean,
 ): Promise<string> {
   const filename = 'initialChunkRetry';
@@ -62,7 +66,7 @@ async function getRetryCode(
   const runtimeOptions = getRuntimeOptions(options);
 
   return `(function(){${runtimeCode}})()`.replace(
-    '__RUNTIME_GLOBALS_OPTIONS__',
+    '__RETRY_OPTIONS__',
     serialize(runtimeOptions),
   );
 }

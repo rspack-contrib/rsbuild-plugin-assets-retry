@@ -48,19 +48,19 @@ declare global {
   // RuntimeGlobals.publicPath
   var __RUNTIME_GLOBALS_PUBLIC_PATH__: string;
   // user options
-  var __RETRY_OPTIONS__: RuntimeRetryOptions;
+  var __RETRY_OPTIONS__: NormalizedRuntimeRetryOptions;
   // global variables shared with initial chunk retry runtime
   var __RB_ASYNC_CHUNKS__: Record<ChunkFilename, boolean>;
 }
 
 // init retryCollector and nextRetry function
 const config = __RETRY_OPTIONS__;
-const maxRetries = config.max || 3;
+const maxRetries = config.max;
 const retryCollector: RetryCollector = {};
 const retryCssCollector: RetryCollector = {};
 
 function findCurrentDomain(url: string) {
-  const domains = config.domain || [];
+  const domains = config.domain;
   let domain = '';
   for (let i = 0; i < domains.length; i++) {
     if (url.indexOf(domains[i]) !== -1) {
@@ -72,7 +72,7 @@ function findCurrentDomain(url: string) {
 }
 
 function findNextDomain(url: string) {
-  const domains = config.domain || [];
+  const domains = config.domain;
   const currentDomain = findCurrentDomain(url);
   const index = domains.indexOf(currentDomain);
   return domains[(index + 1) % domains.length] || url;
@@ -336,7 +336,11 @@ function ensureChunk(chunkId: string): Promise<unknown> {
       }
     }
 
-    if (config.domain && config.domain.indexOf(nextDomain) === -1) {
+    if (
+      config.domain &&
+      config.domain.length > 0 &&
+      config.domain.indexOf(nextDomain) === -1
+    ) {
       throw error;
     }
 
@@ -346,9 +350,7 @@ function ensureChunk(chunkId: string): Promise<unknown> {
     }
 
     const delayTime =
-      typeof config.delay === 'function'
-        ? config.delay(context)
-        : (config.delay ?? 0);
+      typeof config.delay === 'function' ? config.delay(context) : config.delay;
 
     const delayPromise =
       delayTime > 0
