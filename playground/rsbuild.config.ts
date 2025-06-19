@@ -1,6 +1,6 @@
 import { defineConfig } from '@rsbuild/core';
-import { pluginExample } from '../src';
+import { pluginAssetsRetry } from '../dist';
 
 export default defineConfig({
-  plugins: [pluginExample()],
+  plugins: [pluginAssetsRetry()],
 });
