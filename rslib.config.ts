@@ -1,5 +1,3 @@
-import { existsSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { type RsbuildPlugin, logger } from '@rsbuild/core';
@@ -10,56 +8,53 @@ import pkgJson from './package.json';
 /**
  * Compile runtime code to ES5
  */
-const pluginCompileRuntime: RsbuildPlugin = {
+const pluginGeneratedMinified: (filename: string) => RsbuildPlugin = (
+  filename: string,
+) => ({
   name: 'rsbuild-plugin-compile-runtime',
   setup(api) {
     /**
      * transform `src/runtime/${filename}.ts`
      * to `dist/runtime/${filename}.js` and `dist/runtime/${filename}.min.js`
      */
-    async function minifyRuntimeFile(filename: string) {
-      const distPath = path.join(
-        api.context.distPath,
-        'runtime',
-        `${filename}.js`,
-      );
-      const distCode = await readFile(distPath, 'utf8');
-      const distMinPath = path.join(
-        api.context.distPath,
-        'runtime',
-        `${filename}.min.js`,
-      );
-
+    async function minifyRuntimeFile(distCode: string) {
+      const startTime = performance.now();
       const { code: minifiedRuntimeCode } = await minify(distCode, {
         ecma: 5,
         // allows SWC to mangle function names
         module: true,
       });
 
-      await writeFile(distMinPath, minifiedRuntimeCode);
-    }
-
-    api.onAfterBuild(async () => {
-      const startTime = performance.now();
-      const runtimeDir = path.join(api.context.distPath, 'runtime');
-
-      if (!existsSync(runtimeDir)) {
-        await mkdir(runtimeDir);
-      }
-
-      await Promise.all([
-        minifyRuntimeFile('initialChunkRetry'),
-        minifyRuntimeFile('asyncChunkRetry'),
-      ]);
-
       logger.success(
-        `compiled assets retry runtime code in ${(
+        `minify ${filename} retry runtime code in ${(
           performance.now() - startTime
         ).toFixed(1)} ms`,
       );
-    });
+      return minifiedRuntimeCode;
+    }
+
+    api.processAssets(
+      { stage: 'optimize-transfer', targets: ['node'] },
+      async ({ assets, compilation, compiler }) => {
+        const minifiedChunkFilePath = path.join(
+          'runtime',
+          `${filename}.min.js`,
+        );
+
+        await Promise.all(
+          Object.entries(assets).map(async ([_, assetSource]) => {
+            const code = assetSource.source().toString();
+            const minifiedCode = await minifyRuntimeFile(code);
+            compilation.emitAsset(
+              minifiedChunkFilePath,
+              new compiler.webpack.sources.RawSource(minifiedCode),
+            );
+          }),
+        );
+      },
+    );
   },
-};
+});
 
 export default defineConfig({
   lib: [
@@ -92,6 +87,7 @@ export default defineConfig({
           'runtime/initialChunkRetry': 'src/runtime/initialChunkRetry.ts',
         },
       },
+      plugins: [pluginGeneratedMinified('initialChunkRetry')],
     },
     {
       format: 'iife',
@@ -101,6 +97,7 @@ export default defineConfig({
           'runtime/asyncChunkRetry': 'src/runtime/asyncChunkRetry.ts',
         },
       },
+      plugins: [pluginGeneratedMinified('asyncChunkRetry')],
     },
   ],
   source: {
@@ -108,5 +105,4 @@ export default defineConfig({
       PLUGIN_VERSION: JSON.stringify(pkgJson.version.replace(/\./g, '-')),
     },
   },
-  plugins: [pluginCompileRuntime],
 });
