@@ -53,7 +53,7 @@ function getRuntimeOptions(
 }
 
 async function getRetryCode(
-  options: NormalizedRuntimeRetryOptions,
+  runtimeOptions: NormalizedRuntimeRetryOptions,
   minify: boolean,
 ): Promise<string> {
   const filename = 'initialChunkRetry';
@@ -63,7 +63,6 @@ async function getRetryCode(
     minify ? `${filename}.min.js` : `${filename}.js`,
   );
   const runtimeCode = await fs.promises.readFile(runtimeFilePath, 'utf-8');
-  const runtimeOptions = getRuntimeOptions(options);
 
   return runtimeCode.replace('__RETRY_OPTIONS__', serialize(runtimeOptions));
 }
