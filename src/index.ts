@@ -17,7 +17,10 @@ export type { PluginAssetsRetryOptions };
 
 export const PLUGIN_ASSETS_RETRY_NAME = 'rsbuild:assets-retry';
 
-function getRuntimeOptions(userOptions: PluginAssetsRetryOptions) {
+function getRuntimeOptions(
+  userOptions: PluginAssetsRetryOptions,
+): RuntimeRetryOptions {
+  const { inlineScript, minify, ...restOptions } = userOptions;
   const defaultOptions: RuntimeRetryOptions = {
     max: 3,
     type: ['link', 'script', 'img'],
@@ -28,7 +31,7 @@ function getRuntimeOptions(userOptions: PluginAssetsRetryOptions) {
 
   const result: RuntimeRetryOptions = {
     ...defaultOptions,
-    ...userOptions,
+    ...restOptions,
   };
 
   // Normalize config
@@ -46,18 +49,17 @@ function getRuntimeOptions(userOptions: PluginAssetsRetryOptions) {
 }
 
 async function getRetryCode(
-  options: PluginAssetsRetryOptions,
+  options: RuntimeRetryOptions,
+  minify: boolean,
 ): Promise<string> {
   const filename = 'initialChunkRetry';
-  const { minify, inlineScript: _, ...restOptions } = options;
-
   const runtimeFilePath = path.join(
     __dirname,
     'runtime',
     minify ? `${filename}.min.js` : `${filename}.js`,
   );
   const runtimeCode = await fs.promises.readFile(runtimeFilePath, 'utf-8');
-  const runtimeOptions = getRuntimeOptions(restOptions);
+  const runtimeOptions = getRuntimeOptions(options);
 
   return `(function(){${runtimeCode}})()`.replace(
     '__RUNTIME_GLOBALS_OPTIONS__',
@@ -77,7 +79,12 @@ export const pluginAssetsRetry = (
       return path.posix.join(distDir, `assets-retry.${PLUGIN_VERSION}.js`);
     };
 
-    const formatOptions = (config: NormalizedEnvironmentConfig) => {
+    const normalizeOptions = (
+      config: NormalizedEnvironmentConfig,
+    ): PluginAssetsRetryOptions & {
+      minify: boolean;
+      crossorigin: boolean | 'anonymous' | 'use-credentials';
+    } => {
       const options = { ...userOptions };
 
       // options.crossOrigin should be same as html.crossorigin by default
@@ -93,12 +100,14 @@ export const pluginAssetsRetry = (
         options.minify = minify && config.mode === 'production';
       }
 
-      return options;
+      return options as any;
     };
 
     if (inlineScript) {
       api.modifyHTMLTags(async ({ headTags, bodyTags }, { environment }) => {
-        const code = await getRetryCode(formatOptions(environment.config));
+        const options = normalizeOptions(environment.config);
+        const runtimeOptions = getRuntimeOptions(options);
+        const code = await getRetryCode(runtimeOptions, options.minify);
 
         headTags.unshift({
           tag: 'script',
@@ -129,7 +138,9 @@ export const pluginAssetsRetry = (
         { stage: 'additional' },
         async ({ sources, compilation, environment }) => {
           const scriptPath = getScriptPath(environment);
-          const code = await getRetryCode(formatOptions(environment.config));
+          const options = normalizeOptions(environment.config);
+          const runtimeOptions = getRuntimeOptions(options);
+          const code = await getRetryCode(runtimeOptions, options.minify);
           compilation.emitAsset(scriptPath, new sources.RawSource(code));
         },
       );
@@ -142,12 +153,13 @@ export const pluginAssetsRetry = (
         return;
       }
 
-      const options = formatOptions(config);
+      const options = normalizeOptions(config);
+      const runtimeOptions = getRuntimeOptions(options);
       const isRspack = api.context.bundlerType === 'rspack';
 
       chain
         .plugin('async-chunk-retry')
-        .use(AsyncChunkRetryPlugin, [{ ...options, isRspack }]);
+        .use(AsyncChunkRetryPlugin, [runtimeOptions, isRspack, options.minify]);
     });
   },
 });

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type Rspack, rspack } from '@rsbuild/core';
 import serialize from 'serialize-javascript';
-import type { PluginAssetsRetryOptions, RuntimeRetryOptions } from './types.js';
+import type { RuntimeRetryOptions } from './types.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -46,35 +46,20 @@ function modifyRuntimeModule(
   }
 }
 
-function pick<T, U extends keyof T>(obj: T, keys: ReadonlyArray<U>) {
-  return keys.reduce(
-    (ret, key) => {
-      if (obj[key] !== undefined) {
-        ret[key] = obj[key];
-      }
-      return ret;
-    },
-    {} as Pick<T, U>,
-  );
-}
-
 class AsyncChunkRetryPlugin implements Rspack.RspackPluginInstance {
   readonly name = 'ASYNC_CHUNK_RETRY_PLUGIN';
-  readonly options: PluginAssetsRetryOptions & { isRspack: boolean };
+  readonly isRspack: boolean;
+  readonly minify: boolean;
   readonly runtimeOptions: RuntimeRetryOptions;
 
-  constructor(options: PluginAssetsRetryOptions & { isRspack: boolean }) {
-    this.options = options;
-    this.runtimeOptions = pick(options, [
-      'domain',
-      'max',
-      'onRetry',
-      'onSuccess',
-      'onFail',
-      'addQuery',
-      'test',
-      'delay',
-    ]);
+  constructor(
+    options: RuntimeRetryOptions,
+    isRspack: boolean,
+    minify: boolean,
+  ) {
+    this.runtimeOptions = options;
+    this.isRspack = isRspack;
+    this.minify = minify;
   }
 
   getRawRuntimeRetryCode(): string {
@@ -83,7 +68,7 @@ class AsyncChunkRetryPlugin implements Rspack.RspackPluginInstance {
     const runtimeFilePath = path.join(
       __dirname,
       'runtime',
-      this.options.minify ? `${filename}.min.js` : `${filename}.js`,
+      this.minify ? `${filename}.min.js` : `${filename}.js`,
     );
     const rawText = fs.readFileSync(runtimeFilePath, 'utf-8');
 
@@ -116,8 +101,8 @@ class AsyncChunkRetryPlugin implements Rspack.RspackPluginInstance {
 
   apply(compiler: Rspack.Compiler): void {
     compiler.hooks.thisCompilation.tap(this.name, (compilation) => {
+      const isRspack = this.isRspack;
       compilation.hooks.runtimeModule.tap(this.name, (module) => {
-        const { isRspack } = this.options;
         const constructorName = isRspack
           ? module.constructorName
           : module.constructor?.name;
