@@ -65,10 +65,7 @@ async function getRetryCode(
   const runtimeCode = await fs.promises.readFile(runtimeFilePath, 'utf-8');
   const runtimeOptions = getRuntimeOptions(options);
 
-  return `(function(){${runtimeCode}})()`.replace(
-    '__RETRY_OPTIONS__',
-    serialize(runtimeOptions),
-  );
+  return runtimeCode.replace('__RETRY_OPTIONS__', serialize(runtimeOptions));
 }
 
 export const pluginAssetsRetry = (

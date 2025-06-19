@@ -4,7 +4,7 @@ import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { type RsbuildPlugin, logger } from '@rsbuild/core';
 import { defineConfig } from '@rslib/core';
-import { minify, transform } from '@swc/core';
+import { minify } from '@swc/core';
 import pkgJson from './package.json';
 
 /**
@@ -17,46 +17,26 @@ const pluginCompileRuntime: RsbuildPlugin = {
      * transform `src/runtime/${filename}.ts`
      * to `dist/runtime/${filename}.js` and `dist/runtime/${filename}.min.js`
      */
-    async function compileRuntimeFile(filename: string) {
-      const sourceFilePath = path.join(
-        api.context.rootPath,
-        `src/runtime/${filename}.ts`,
-      );
-
-      const runtimeCode = await readFile(sourceFilePath, 'utf8');
+    async function minifyRuntimeFile(filename: string) {
       const distPath = path.join(
         api.context.distPath,
         'runtime',
         `${filename}.js`,
       );
+      const distCode = await readFile(distPath, 'utf8');
       const distMinPath = path.join(
         api.context.distPath,
         'runtime',
         `${filename}.min.js`,
       );
 
-      const { code } = await transform(runtimeCode, {
-        jsc: {
-          target: 'es5',
-          parser: {
-            syntax: 'typescript',
-          },
-        },
-        // Output script file to be used in `<script>` tag
-        isModule: false,
-        sourceFileName: sourceFilePath,
-      });
-
-      const { code: minifiedRuntimeCode } = await minify(code, {
+      const { code: minifiedRuntimeCode } = await minify(distCode, {
         ecma: 5,
         // allows SWC to mangle function names
         module: true,
       });
 
-      await Promise.all([
-        writeFile(distPath, code),
-        writeFile(distMinPath, minifiedRuntimeCode),
-      ]);
+      await writeFile(distMinPath, minifiedRuntimeCode);
     }
 
     api.onAfterBuild(async () => {
@@ -68,8 +48,8 @@ const pluginCompileRuntime: RsbuildPlugin = {
       }
 
       await Promise.all([
-        compileRuntimeFile('initialChunkRetry'),
-        compileRuntimeFile('asyncChunkRetry'),
+        minifyRuntimeFile('initialChunkRetry'),
+        minifyRuntimeFile('asyncChunkRetry'),
       ]);
 
       logger.success(
@@ -86,11 +66,41 @@ export default defineConfig({
     {
       format: 'esm',
       syntax: 'es2021',
-      dts: true,
+      dts: {
+        bundle: true,
+      },
+      source: {
+        entry: {
+          index: 'src/index.ts',
+        },
+      },
     },
     {
       format: 'cjs',
       syntax: 'es2021',
+      source: {
+        entry: {
+          index: 'src/index.ts',
+        },
+      },
+    },
+    {
+      format: 'iife',
+      syntax: 'es5',
+      source: {
+        entry: {
+          'runtime/initialChunkRetry': 'src/runtime/initialChunkRetry.ts',
+        },
+      },
+    },
+    {
+      format: 'iife',
+      syntax: 'es5',
+      source: {
+        entry: {
+          'runtime/asyncChunkRetry': 'src/runtime/asyncChunkRetry.ts',
+        },
+      },
     },
   ],
   source: {
