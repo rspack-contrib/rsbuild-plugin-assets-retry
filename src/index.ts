@@ -100,7 +100,10 @@ export const pluginAssetsRetry = (
         options.minify = minify && config.mode === 'production';
       }
 
-      return options as any;
+      return options as PluginAssetsRetryOptions & {
+        minify: boolean;
+        crossorigin: boolean | 'anonymous' | 'use-credentials';
+      };
     };
 
     if (inlineScript) {
