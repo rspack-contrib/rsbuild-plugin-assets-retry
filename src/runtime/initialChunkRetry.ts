@@ -16,7 +16,7 @@ const TAG_TYPE: { [propName: string]: new () => HTMLElement } = {
 declare global {
   // global variables shared with async chunk
   var __RB_ASYNC_CHUNKS__: Record<string, boolean>;
-  var __RUNTIME_GLOBALS_OPTIONS__: RuntimeRetryOptions;
+  var __RETRY_OPTIONS__: NormalizedRuntimeRetryOptions;
 }
 
 // this function is the same as async chunk retry
@@ -61,12 +61,12 @@ function getRequestUrl(element: HTMLElement) {
 }
 
 function validateTargetInfo(
-  config: RuntimeRetryOptions,
+  config: NormalizedRuntimeRetryOptions,
   e: Event,
 ): { target: HTMLElement; tagName: string; url: string } | false {
   const target: HTMLElement = e.target as HTMLElement;
   const tagName = target.tagName.toLocaleLowerCase();
-  const allowTags = config.type!;
+  const allowTags = config.type;
   const url = getRequestUrl(target);
   if (
     !tagName ||
@@ -184,7 +184,7 @@ function reloadElementResource(
   }
 }
 
-function retry(config: RuntimeRetryOptions, e: Event) {
+function retry(config: NormalizedRuntimeRetryOptions, e: Event) {
   const targetInfo = validateTargetInfo(config, e);
   if (targetInfo === false) {
     return;
@@ -215,7 +215,7 @@ function retry(config: RuntimeRetryOptions, e: Event) {
     }
   }
 
-  const domain = findCurrentDomain(url, config.domain!);
+  const domain = findCurrentDomain(url, config.domain);
 
   if (
     config.domain &&
@@ -242,7 +242,7 @@ function retry(config: RuntimeRetryOptions, e: Event) {
   }
 
   // Then, we will start to retry
-  const nextDomain = findNextDomain(domain, config.domain!);
+  const nextDomain = findNextDomain(domain, config.domain);
 
   // if the initial request is "/static/js/async/src_Hello_tsx.js?q=1", retry url would be "/static/js/async/src_Hello_tsx.js?q=1&retry=1"
   const originalQuery = target.dataset.rbOriginalQuery ?? getQueryFromUrl(url);
@@ -302,9 +302,7 @@ function retry(config: RuntimeRetryOptions, e: Event) {
 
   // Delay retry
   const delayValue =
-    typeof config.delay === 'function'
-      ? config.delay(context)
-      : (config.delay ?? 0);
+    typeof config.delay === 'function' ? config.delay(context) : config.delay;
 
   if (delayValue > 0) {
     setTimeout(() => {
@@ -315,13 +313,13 @@ function retry(config: RuntimeRetryOptions, e: Event) {
   }
 }
 
-function load(config: RuntimeRetryOptions, e: Event) {
+function load(config: NormalizedRuntimeRetryOptions, e: Event) {
   const targetInfo = validateTargetInfo(config, e);
   if (targetInfo === false) {
     return;
   }
   const { target, tagName, url } = targetInfo;
-  const domain = findCurrentDomain(url, config.domain!);
+  const domain = findCurrentDomain(url, config.domain);
   const retryTimes = Number(target.dataset.rbRetryTimes) || 0;
   if (retryTimes === 0) {
     return;
@@ -371,7 +369,7 @@ if (typeof window !== 'undefined' && !window.__RB_ASYNC_CHUNKS__) {
 }
 // Bind event in window
 try {
-  const config = __RUNTIME_GLOBALS_OPTIONS__;
+  const config = __RETRY_OPTIONS__;
   resourceMonitor(
     (e: Event) => {
       try {

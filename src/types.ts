@@ -8,7 +8,7 @@ export type AssetsRetryHookContext = {
   isAsyncChunk: boolean;
 };
 
-export type RuntimeRetryOptions = {
+export type RuntimeRetryOptionsWithDefaultValue = {
   /**
    * The maximum number of retries for a single asset.
    * @default 3
@@ -20,10 +20,6 @@ export type RuntimeRetryOptions = {
    */
   type?: string[];
   /**
-   * The test function of the asset to be retried.
-   */
-  test?: string | ((url: string) => boolean);
-  /**
    * Specifies the retry domain when assets fail to load.
    */
   domain?: string[];
@@ -33,17 +29,10 @@ export type RuntimeRetryOptions = {
    */
   crossOrigin?: boolean | CrossOrigin;
   /**
-   * The callback function when the asset is failed to be retried.
+   * The delay time between retries. Unit: ms
+   * @default 0
    */
-  onFail?: (context: AssetsRetryHookContext) => void;
-  /**
-   * The callback function when the asset is being retried.
-   */
-  onRetry?: (context: AssetsRetryHookContext) => void;
-  /**
-   * The callback function when the asset is successfully retried.
-   */
-  onSuccess?: (context: AssetsRetryHookContext) => void;
+  delay?: number | ((context: AssetsRetryHookContext) => number);
   /**
    * The function to add query parameters to the URL of the asset being retried.
    * @param times e.g: 1 -> 2 -> 3
@@ -60,12 +49,33 @@ export type RuntimeRetryOptions = {
   addQuery?:
     | boolean
     | ((context: { times: number; originalQuery: string }) => string);
-  /**
-   * The delay time between retries. Unit: ms
-   * @default 0
-   */
-  delay?: number | ((context: AssetsRetryHookContext) => number);
 };
+
+export type RuntimeRetryOptionsWithoutDefaultValue = {
+  /**
+   * The test function of the asset to be retried.
+   */
+  test?: string | ((url: string) => boolean);
+  /**
+   * The callback function when the asset is failed to be retried.
+   */
+  onFail?: (context: AssetsRetryHookContext) => void;
+  /**
+   * The callback function when the asset is being retried.
+   */
+  onRetry?: (context: AssetsRetryHookContext) => void;
+  /**
+   * The callback function when the asset is successfully retried.
+   */
+  onSuccess?: (context: AssetsRetryHookContext) => void;
+};
+
+export type NormalizedRuntimeRetryOptions =
+  Required<RuntimeRetryOptionsWithDefaultValue> &
+    RuntimeRetryOptionsWithoutDefaultValue;
+
+export type RuntimeRetryOptions = RuntimeRetryOptionsWithDefaultValue &
+  RuntimeRetryOptionsWithoutDefaultValue;
 
 export type CompileTimeRetryOptions = {
   /**
