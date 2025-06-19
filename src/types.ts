@@ -1,6 +1,14 @@
 import type { CrossOrigin } from '@rsbuild/core';
 
-export type PluginAssetsRetryOptions = {
+export type AssetsRetryHookContext = {
+  url: string;
+  times: number;
+  domain: string;
+  tagName: string;
+  isAsyncChunk: boolean;
+};
+
+export type RuntimeRetryOptions = {
   /**
    * The maximum number of retries for a single asset.
    * @default 3
@@ -21,7 +29,7 @@ export type PluginAssetsRetryOptions = {
   domain?: string[];
   /**
    * Set the `crossorigin` attribute for tags.
-   * @default config.html.crossorigin
+   * @default rsbuildConfig.html.crossorigin
    */
   crossOrigin?: boolean | CrossOrigin;
   /**
@@ -41,11 +49,25 @@ export type PluginAssetsRetryOptions = {
    * @param times e.g: 1 -> 2 -> 3
    * @param originalQuery initial request url's query e.g: <script src="https://cdn.com/a.js?version=1"></script> -> "?version=1"
    * @default false
-   * @description true -> hasQuery(originalQuery) ? `${getQuery(originalQuery)}&retry=${existRetryTimes}` : `?retry=${existRetryTimes}`
+   * @description
+   *
+   * if set to `true`, `?retry=${times}` will be added to the url.
+   *
+   * ```ts
+   * ({ times, originalQuery }) => hasQuery(originalQuery) ? `${getQuery(originalQuery)}&retry=${times}` : `?retry=${times}`
+   * ```
    */
   addQuery?:
     | boolean
     | ((context: { times: number; originalQuery: string }) => string);
+  /**
+   * The delay time between retries. Unit: ms
+   * @default 0
+   */
+  delay?: number | ((context: AssetsRetryHookContext) => number);
+};
+
+export type CompileTimeRetryOptions = {
   /**
    * Whether to inline the runtime JavaScript code of Assets Retry plugin into the HTML file.
    * @default true
@@ -56,22 +78,7 @@ export type PluginAssetsRetryOptions = {
    * @default rsbuildConfig.mode === 'production'
    */
   minify?: boolean;
-  /**
-   * The delay time between retries. Unit: ms
-   * @default 0
-   */
-  delay?: number | ((context: AssetsRetryHookContext) => number);
 };
 
-export type RuntimeRetryOptions = Omit<
-  PluginAssetsRetryOptions,
-  'inlineScript' | 'minify'
->;
-
-export type AssetsRetryHookContext = {
-  url: string;
-  times: number;
-  domain: string;
-  tagName: string;
-  isAsyncChunk: boolean;
-};
+export type PluginAssetsRetryOptions = RuntimeRetryOptions &
+  CompileTimeRetryOptions;

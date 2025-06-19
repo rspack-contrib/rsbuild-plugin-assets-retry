@@ -6,6 +6,8 @@
     "lib": ["DOM", "ESNext"],
     "module": "Node16",
     "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "declaration": true,
     "isolatedModules": true,
     "esModuleInterop": true,
