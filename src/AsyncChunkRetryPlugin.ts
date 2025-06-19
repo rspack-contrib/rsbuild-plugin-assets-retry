@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type Rspack, rspack } from '@rsbuild/core';
 import serialize from 'serialize-javascript';
-import type { RuntimeRetryOptions } from './types.js';
+import type { NormalizedRuntimeRetryOptions } from './types.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -50,10 +50,10 @@ class AsyncChunkRetryPlugin implements Rspack.RspackPluginInstance {
   readonly name = 'ASYNC_CHUNK_RETRY_PLUGIN';
   readonly isRspack: boolean;
   readonly minify: boolean;
-  readonly runtimeOptions: RuntimeRetryOptions;
+  readonly runtimeOptions: NormalizedRuntimeRetryOptions;
 
   constructor(
-    options: RuntimeRetryOptions,
+    options: NormalizedRuntimeRetryOptions,
     isRspack: boolean,
     minify: boolean,
   ) {
