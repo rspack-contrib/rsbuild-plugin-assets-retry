@@ -34,7 +34,7 @@ const pluginGeneratedMinified: (filename: string) => RsbuildPlugin = (
     }
 
     api.processAssets(
-      { stage: 'optimize-transfer', targets: ['node'] },
+      { stage: 'optimize-transfer' },
       async ({ assets, compilation, compiler }) => {
         const minifiedChunkFilePath = path.join(
           'runtime',
@@ -87,6 +87,9 @@ export default defineConfig({
           'runtime/initialChunkRetry': 'src/runtime/initialChunkRetry.ts',
         },
       },
+      output: {
+        target: 'web',
+      },
       plugins: [pluginGeneratedMinified('initialChunkRetry')],
     },
     {
@@ -96,6 +99,9 @@ export default defineConfig({
         entry: {
           'runtime/asyncChunkRetry': 'src/runtime/asyncChunkRetry.ts',
         },
+      },
+      output: {
+        target: 'web',
       },
       plugins: [pluginGeneratedMinified('asyncChunkRetry')],
     },
