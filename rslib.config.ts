@@ -8,7 +8,7 @@ import pkgJson from './package.json';
 /**
  * Compile runtime code to ES5
  */
-const pluginGeneratedMinified: (filename: string) => RsbuildPlugin = (
+const pluginGenerateMinified: (filename: string) => RsbuildPlugin = (
   filename: string,
 ) => ({
   name: 'rsbuild-plugin-compile-runtime',
@@ -90,7 +90,7 @@ export default defineConfig({
       output: {
         target: 'web',
       },
-      plugins: [pluginGeneratedMinified('initialChunkRetry')],
+      plugins: [pluginGenerateMinified('initialChunkRetry')],
     },
     {
       format: 'iife',
@@ -103,7 +103,7 @@ export default defineConfig({
       output: {
         target: 'web',
       },
-      plugins: [pluginGeneratedMinified('asyncChunkRetry')],
+      plugins: [pluginGenerateMinified('asyncChunkRetry')],
     },
   ],
   source: {
