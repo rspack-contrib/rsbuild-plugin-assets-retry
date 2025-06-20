@@ -1,4 +1,11 @@
 // rsbuild/runtime/initial-chunk-retry
+import {
+  findCurrentDomain,
+  findNextDomain,
+  getNextRetryUrl,
+  getQueryFromUrl,
+} from './urlCalculate.js';
+
 interface ScriptElementAttributes {
   url: string;
   times: number;
@@ -17,25 +24,6 @@ declare global {
   // global variables shared with async chunk
   var __RB_ASYNC_CHUNKS__: Record<string, boolean>;
   var __RETRY_OPTIONS__: NormalizedRuntimeRetryOptions;
-}
-
-// this function is the same as async chunk retry
-function findCurrentDomain(url: string, domains: string[]) {
-  let domain = '';
-  for (let i = 0; i < domains.length; i++) {
-    if (url.indexOf(domains[i]) !== -1) {
-      domain = domains[i];
-      break;
-    }
-  }
-  return domain || window.origin;
-}
-
-// this function is the same as async chunk retry
-function findNextDomain(url: string, domains: string[]) {
-  const currentDomain = findCurrentDomain(url, domains);
-  const index = domains.indexOf(currentDomain);
-  return domains[(index + 1) % domains.length] || url;
 }
 
 function getRequestUrl(element: HTMLElement) {
@@ -79,15 +67,6 @@ function validateTargetInfo(
   }
 
   return { target, tagName, url };
-}
-
-const postfixRE = /[?#].*$/;
-function cleanUrl(url: string) {
-  return url.replace(postfixRE, '');
-}
-function getQueryFromUrl(url: string) {
-  const parts = url.split('?')[1];
-  return parts ? `?${parts.split('#')[0]}` : '';
 }
 
 function createElement(
@@ -215,7 +194,7 @@ function retry(config: NormalizedRuntimeRetryOptions, e: Event) {
     }
   }
 
-  const domain = findCurrentDomain(url, config.domain);
+  const domain = findCurrentDomain(url, config);
 
   if (
     config.domain &&
@@ -242,36 +221,10 @@ function retry(config: NormalizedRuntimeRetryOptions, e: Event) {
   }
 
   // Then, we will start to retry
-  const nextDomain = findNextDomain(domain, config.domain);
+  const nextDomain = findNextDomain(domain, config);
 
   // if the initial request is "/static/js/async/src_Hello_tsx.js?q=1", retry url would be "/static/js/async/src_Hello_tsx.js?q=1&retry=1"
   const originalQuery = target.dataset.rbOriginalQuery ?? getQueryFromUrl(url);
-
-  // this function is the same as async chunk retry
-  function getUrlRetryQuery(existRetryTimes: number): string {
-    if (config.addQuery === true) {
-      return originalQuery !== ''
-        ? `${originalQuery}&retry=${existRetryTimes}`
-        : `?retry=${existRetryTimes}`;
-    }
-    if (typeof config.addQuery === 'function') {
-      return config.addQuery({ times: existRetryTimes, originalQuery });
-    }
-    return '';
-  }
-
-  // this function is the same as async chunk retry
-  function getNextRetryUrl(
-    currRetryUrl: string,
-    domain: string,
-    nextDomain: string,
-    existRetryTimes: number,
-  ) {
-    return (
-      cleanUrl(currRetryUrl.replace(domain, nextDomain)) +
-      getUrlRetryQuery(existRetryTimes + 1)
-    );
-  }
 
   const isAsync =
     Boolean(target.dataset.rbAsync) ||
@@ -279,7 +232,14 @@ function retry(config: NormalizedRuntimeRetryOptions, e: Event) {
     (target as HTMLScriptElement).defer;
 
   const attributes: ScriptElementAttributes = {
-    url: getNextRetryUrl(url, domain, nextDomain, existRetryTimes),
+    url: getNextRetryUrl(
+      url,
+      domain,
+      nextDomain,
+      existRetryTimes,
+      originalQuery,
+      config,
+    ),
     times: existRetryTimes + 1,
     crossOrigin: config.crossOrigin,
     isAsync,
@@ -319,7 +279,7 @@ function load(config: NormalizedRuntimeRetryOptions, e: Event) {
     return;
   }
   const { target, tagName, url } = targetInfo;
-  const domain = findCurrentDomain(url, config.domain);
+  const domain = findCurrentDomain(url, config);
   const retryTimes = Number(target.dataset.rbRetryTimes) || 0;
   if (retryTimes === 0) {
     return;

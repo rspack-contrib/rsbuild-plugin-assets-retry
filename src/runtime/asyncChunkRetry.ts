@@ -1,3 +1,10 @@
+import {
+  findCurrentDomain,
+  findNextDomain,
+  getNextRetryUrl,
+  getQueryFromUrl,
+} from './urlCalculate.js';
+
 // rsbuild/runtime/async-chunk-retry
 type ChunkId = string; // e.g: src_AsyncCompTest_tsx
 type ChunkFilename = string; // e.g: static/js/async/src_AsyncCompTest_tsx.js
@@ -59,62 +66,6 @@ const maxRetries = config.max;
 const retryCollector: RetryCollector = {};
 const retryCssCollector: RetryCollector = {};
 
-function findCurrentDomain(url: string) {
-  const domains = config.domain;
-  let domain = '';
-  for (let i = 0; i < domains.length; i++) {
-    if (url.indexOf(domains[i]) !== -1) {
-      domain = domains[i];
-      break;
-    }
-  }
-  return domain || window.origin;
-}
-
-function findNextDomain(url: string) {
-  const domains = config.domain;
-  const currentDomain = findCurrentDomain(url);
-  const index = domains.indexOf(currentDomain);
-  return domains[(index + 1) % domains.length] || url;
-}
-
-const postfixRE = /[?#].*$/;
-function cleanUrl(url: string) {
-  return url.replace(postfixRE, '');
-}
-function getQueryFromUrl(url: string) {
-  const parts = url.split('?')[1];
-  return parts ? `?${parts.split('#')[0]}` : '';
-}
-
-function getUrlRetryQuery(
-  existRetryTimes: number,
-  originalQuery: string,
-): string {
-  if (config.addQuery === true) {
-    return originalQuery !== ''
-      ? `${originalQuery}&retry=${existRetryTimes}`
-      : `?retry=${existRetryTimes}`;
-  }
-  if (typeof config.addQuery === 'function') {
-    return config.addQuery({ times: existRetryTimes, originalQuery });
-  }
-  return '';
-}
-
-function getNextRetryUrl(
-  currRetryUrl: string,
-  domain: string,
-  nextDomain: string,
-  existRetryTimes: number,
-  originalQuery: string,
-) {
-  return (
-    cleanUrl(currRetryUrl.replace(domain, nextDomain)) +
-    getUrlRetryQuery(existRetryTimes + 1, originalQuery)
-  );
-}
-
 // shared between ensureChunk and loadScript
 const globalCurrRetrying: Record<ChunkId, Retry | undefined> = {};
 // shared between ensureChunk and loadStyleSheet
@@ -147,7 +98,7 @@ function initRetry(chunkId: string, isCssAsyncChunk: boolean): Retry {
   const originalQuery = getQueryFromUrl(originalSrcUrl);
 
   const existRetryTimes = 0;
-  const nextDomain = findCurrentDomain(originalSrcUrl);
+  const nextDomain = findCurrentDomain(originalSrcUrl, config);
 
   return {
     nextDomain,
@@ -157,6 +108,7 @@ function initRetry(chunkId: string, isCssAsyncChunk: boolean): Retry {
       nextDomain,
       existRetryTimes,
       originalQuery,
+      config,
     ),
     originalScriptFilename,
     originalSrcUrl,
@@ -183,7 +135,7 @@ function nextRetry(
     }
   } else {
     const { originalScriptFilename, originalSrcUrl, originalQuery } = currRetry;
-    const nextDomain = findNextDomain(currRetry.nextDomain);
+    const nextDomain = findNextDomain(currRetry.nextDomain, config);
 
     nextRetry = {
       nextDomain,
@@ -193,6 +145,7 @@ function nextRetry(
         nextDomain,
         existRetryTimes,
         originalQuery,
+        config,
       ),
 
       originalScriptFilename,
