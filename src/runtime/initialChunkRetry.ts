@@ -296,56 +296,48 @@ function load(config: NormalizedRuntimeRetryOptions, e: Event) {
   }
 }
 
-function resourceMonitor(
-  error: (e: Event) => void,
-  success: (e: Event) => void,
-) {
-  if (typeof window !== 'undefined' && typeof window.document !== 'undefined') {
-    document.addEventListener(
-      'error',
-      (e) => {
-        if (e && e.target instanceof Element) {
-          error(e);
-        }
-      },
-      true,
-    );
-
-    document.addEventListener(
-      'load',
-      (e) => {
-        if (e && e.target instanceof Element) {
-          success(e);
-        }
-      },
-      true,
-    );
+function registerInitialChunkRetry() {
+  // init global variables shared with async chunk
+  if (typeof window !== 'undefined' && !window.__RB_ASYNC_CHUNKS__) {
+    window.__RB_ASYNC_CHUNKS__ = {};
+  }
+  try {
+    const config = __RETRY_OPTIONS__;
+    // Bind event in window
+    if (
+      typeof window !== 'undefined' &&
+      typeof window.document !== 'undefined'
+    ) {
+      document.addEventListener(
+        'error',
+        (e) => {
+          if (e && e.target instanceof Element) {
+            try {
+              retry(config, e);
+            } catch (err) {
+              console.error('retry error captured', err);
+            }
+          }
+        },
+        true,
+      );
+      document.addEventListener(
+        'load',
+        (e) => {
+          if (e && e.target instanceof Element) {
+            try {
+              load(config, e);
+            } catch (err) {
+              console.error('load error captured', err);
+            }
+          }
+        },
+        true,
+      );
+    }
+  } catch (err) {
+    console.error('monitor error captured', err);
   }
 }
 
-// init global variables shared with async chunk
-if (typeof window !== 'undefined' && !window.__RB_ASYNC_CHUNKS__) {
-  window.__RB_ASYNC_CHUNKS__ = {};
-}
-// Bind event in window
-try {
-  const config = __RETRY_OPTIONS__;
-  resourceMonitor(
-    (e: Event) => {
-      try {
-        retry(config, e);
-      } catch (err) {
-        console.error('retry error captured', err);
-      }
-    },
-    (e: Event) => {
-      try {
-        load(config, e);
-      } catch (err) {
-        console.error('load error captured', err);
-      }
-    },
-  );
-} catch (err) {
-  console.error('monitor error captured', err);
-}
+registerInitialChunkRetry();
