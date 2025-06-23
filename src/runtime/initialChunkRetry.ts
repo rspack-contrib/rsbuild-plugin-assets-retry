@@ -1,5 +1,5 @@
 // rsbuild/runtime/initial-chunk-retry
-import { ERROR_PREFIX } from './contants.js';
+import { ERROR_PREFIX } from './constants.js';
 import {
   findCurrentDomain,
   findNextDomain,
