@@ -351,6 +351,10 @@ pluginAssetsRetry({
 
 以下场景 Assets Retry 插件可能无法生效：
 
+### 同步 script 标签加载的资源
+
+`<script src="..."></script>` 标签加载的资源是同步加载的，如果进行重试无法保证资源加载的顺序，因此 Assets Retry 插件不会对同步加载的 script 标签进行重试。只会对 async/defer 的 script 标签进行重试。
+
 ### 模块联邦
 
 对于模块联邦加载的远程模块，你可以使用模块联邦 2.0 的 [@module-federation/retry-plugin](https://www.npmjs.com/package/@module-federation/retry-plugin) 来实现静态资源重试。

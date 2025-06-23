@@ -37,7 +37,7 @@ bun add @rsbuild/plugin-assets-retry -D
 You can register the plugin in the `rsbuild.config.ts` file:
 
 ```ts
-import { pluginAssetsRetry } from "@rsbuild/plugin-assets-retry";
+import { pluginAssetsRetry } from '@rsbuild/plugin-assets-retry';
 
 export default {
   plugins: [pluginAssetsRetry()],
@@ -64,7 +64,7 @@ type AssetsRetryOptions = {
   domain?: string[];
   max?: number;
   test?: string | ((url: string) => boolean);
-  crossOrigin?: boolean | "anonymous" | "use-credentials";
+  crossOrigin?: boolean | 'anonymous' | 'use-credentials';
   inlineScript?: boolean;
   delay?: number | ((context: AssetsRetryHookContext) => number);
   onRetry?: (context: AssetsRetryHookContext) => void;
@@ -77,10 +77,10 @@ type AssetsRetryOptions = {
 
 ```ts
 const defaultAssetsRetryOptions = {
-  type: ["script", "link", "img"],
+  type: ['script', 'link', 'img'],
   domain: [],
   max: 3,
-  test: "",
+  test: '',
   crossOrigin: false,
   delay: 0,
   onRetry: () => {},
@@ -103,11 +103,11 @@ For example:
 defineConfig({
   plugins: [
     pluginAssetsRetry({
-      domain: ["cdn1.com", "cdn2.com", "cdn3.com"],
-    })
+      domain: ['cdn1.com', 'cdn2.com', 'cdn3.com'],
+    }),
   ],
   output: {
-    assetPrefix: "https://cdn1.com", // or "//cdn1.com"
+    assetPrefix: 'https://cdn1.com', // or "//cdn1.com"
   },
 });
 ```
@@ -127,7 +127,7 @@ For example, only script tags and link tags are processed:
 
 ```js
 pluginAssetsRetry({
-  type: ["script", "link"],
+  type: ['script', 'link'],
 });
 ```
 
@@ -182,7 +182,7 @@ The callback function when the asset is being retried. For example:
 pluginAssetsRetry({
   onRetry: ({ times, domain, url, tagName, isAsyncChunk }) => {
     console.log(
-      `Retry ${times} times, domain: ${domain}, url: ${url}, tagName: ${tagName}, isAsyncChunk: ${isAsyncChunk}`
+      `Retry ${times} times, domain: ${domain}, url: ${url}, tagName: ${tagName}, isAsyncChunk: ${isAsyncChunk}`,
     );
   },
 });
@@ -198,7 +198,7 @@ The callback function when the asset is successfully retried. For example:
 pluginAssetsRetry({
   onSuccess: ({ times, domain, url, tagName, isAsyncChunk }) => {
     console.log(
-      `Retry ${times} times, domain: ${domain}, url: ${url}, tagName: ${tagName}, isAsyncChunk: ${isAsyncChunk}`
+      `Retry ${times} times, domain: ${domain}, url: ${url}, tagName: ${tagName}, isAsyncChunk: ${isAsyncChunk}`,
     );
   },
 });
@@ -214,7 +214,7 @@ The callback function when the asset is failed to be retried. For example:
 pluginAssetsRetry({
   onFail: ({ times, domain, url, tagName, isAsyncChunk }) => {
     console.log(
-      `Retry ${times} times, domain: ${domain}, url: ${url}, tagName: ${tagName}, isAsyncChunk: ${isAsyncChunk}`
+      `Retry ${times} times, domain: ${domain}, url: ${url}, tagName: ${tagName}, isAsyncChunk: ${isAsyncChunk}`,
     );
   },
 });
@@ -321,7 +321,7 @@ Or pass a function that receives `AssetsRetryHookContext` and returns the delay 
 ```js
 // Calculate delay based on retry attempts
 pluginAssetsRetry({
-  delay: (ctx) => (ctx.times + 1) * 1000,
+  delay: ctx => (ctx.times + 1) * 1000,
 });
 ```
 
@@ -336,12 +336,12 @@ When you use Assets Retry plugin, the Rsbuild injects some runtime code into the
 Here's an example of incorrect usage:
 
 ```js
-import { someMethod } from "utils";
+import { someMethod } from 'utils';
 
 pluginAssetsRetry({
   onRetry() {
     // Incorrect usage, includes sensitive information
-    const privateToken = "a-private-token";
+    const privateToken = 'a-private-token';
 
     // Incorrect usage, uses an external method
     someMethod(privateToken);
@@ -352,6 +352,10 @@ pluginAssetsRetry({
 ## Limitation
 
 Assets Retry plugin may not work in the following scenarios:
+
+### Sync script tag loaded resources
+
+`<script src="..."></script>` tags load resources synchronously, and retrying them does not guarantee the order of resource loading. Therefore, the Assets Retry plugin will not retry resources loaded by synchronous script tags. It will only retry resources loaded by async/defer script tags.
 
 ### Module Federation
 
