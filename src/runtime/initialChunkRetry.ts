@@ -1,4 +1,5 @@
 // rsbuild/runtime/initial-chunk-retry
+import { ERROR_PREFIX } from './constants.js';
 import {
   findCurrentDomain,
   findNextDomain,
@@ -31,18 +32,9 @@ function getRequestUrl(element: HTMLElement) {
     element instanceof HTMLScriptElement ||
     element instanceof HTMLImageElement
   ) {
-    // For <script src="" /> or <img src="" />
-    // element.getAttribute('src') === '' but element.src === baseURI
-    if (!element.getAttribute('src')?.trim()) {
-      return null;
-    }
     return element.src;
   }
   if (element instanceof HTMLLinkElement) {
-    // For <link href="" />
-    if (!element.getAttribute('href')?.trim()) {
-      return null;
-    }
     return element.href;
   }
   return null;
@@ -148,7 +140,11 @@ function reloadElementResource(
     if (attributes.isAsync) {
       document.body.appendChild(fresh.element);
     } else {
-      document.write(fresh.str);
+      console.warn(
+        ERROR_PREFIX,
+        'load sync script failed, for security only async/defer script can be retried',
+        origin,
+      );
     }
   }
 

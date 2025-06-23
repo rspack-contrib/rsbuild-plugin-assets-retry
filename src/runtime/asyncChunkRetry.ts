@@ -1,3 +1,4 @@
+import { ERROR_PREFIX } from './constants.js';
 import {
   findCurrentDomain,
   findNextDomain,
@@ -173,8 +174,6 @@ const originalGetCssFilename =
   __RUNTIME_GLOBALS_GET_CSS_FILENAME__ ||
   (() => null);
 const originalLoadScript = __RUNTIME_GLOBALS_LOAD_SCRIPT__;
-
-const ERROR_PREFIX = '[@rsbuild/plugin-assets-retry] ';
 
 // if users want to support es5, add Promise polyfill first https://github.com/webpack/webpack/issues/12877
 function ensureChunk(chunkId: string): Promise<unknown> {
