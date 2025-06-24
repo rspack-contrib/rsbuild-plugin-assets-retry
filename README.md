@@ -59,18 +59,28 @@ type AssetsRetryHookContext = {
   isAsyncChunk: boolean;
 };
 
-type AssetsRetryOptions = {
+type RuntimeRetryOptions = {
   type?: string[];
   domain?: string[];
   max?: number;
   test?: string | ((url: string) => boolean);
   crossOrigin?: boolean | "anonymous" | "use-credentials";
-  inlineScript?: boolean;
   delay?: number | ((context: AssetsRetryHookContext) => number);
   onRetry?: (context: AssetsRetryHookContext) => void;
   onSuccess?: (context: AssetsRetryHookContext) => void;
   onFail?: (context: AssetsRetryHookContext) => void;
 };
+
+type PluginAssetsRetryOptions = 
+  | ({
+      rules: RuntimeRetryOptions[];
+      inlineScript?: boolean;
+      minify?: boolean;
+    })
+  | (RuntimeRetryOptions & {
+      inlineScript?: boolean;
+      minify?: boolean;
+    });
 ```
 
 - **Default:**
@@ -80,7 +90,7 @@ const defaultAssetsRetryOptions = {
   type: ["script", "link", "img"],
   domain: [],
   max: 3,
-  test: "",
+  test: undefined,
   crossOrigin: false,
   delay: 0,
   onRetry: () => {},
@@ -93,35 +103,37 @@ const defaultAssetsRetryOptions = {
 
 The plugin supports configuring multiple retry rules, similar to webpack loaders configuration. Each rule can have different retry strategies for different resources.
 
-When using multiple rules, the plugin will find the first matching rule for each resource based on the `test` and `domain` conditions. If no rule matches, the default configuration will be used.
+When using multiple rules, the plugin will find the first matching rule for each resource based on the `test` and `domain` conditions. If no rule matches, the resource will not be retried.
 
 Rules are evaluated in order, and the first matching rule will be applied:
 
 ```ts
-pluginAssetsRetry([
-  {
-    // Rule 1: For specific CDN domain with pattern matching
-    domain: ["cdn1.com", "cdn2.com"],
-    test: /critical\.(js|css)$/,
-    max: 5,
-    onRetry: (context) => {
-      console.log(`Critical asset retry: ${context.url}`);
+pluginAssetsRetry({
+  rules: [
+    {
+      // Rule 1: For specific CDN domain with pattern matching
+      domain: ["cdn1.com", "cdn2.com"],
+      test: "critical\\.(js|css)$",
+      max: 5,
+      onRetry: (context) => {
+        console.log(`Critical asset retry: ${context.url}`);
+      },
     },
-  },
-  {
-    // Rule 2: For images with different retry count
-    test: /\.(png|jpg|jpeg|gif|svg)$/,
-    max: 2,
-    onRetry: (context) => {
-      console.log(`Image retry: ${context.url}`);
+    {
+      // Rule 2: For images with different retry count
+      test: "\\.(png|jpg|jpeg|gif|svg)$",
+      max: 2,
+      onRetry: (context) => {
+        console.log(`Image retry: ${context.url}`);
+      },
     },
-  },
-  {
-    // Rule 3: General rule for other resources
-    domain: ["cdn3.com"],
-    max: 3,
-  }
-]);
+    {
+      // Rule 3: General rule for other resources
+      domain: ["cdn3.com"],
+      max: 3,
+    }
+  ]
+});
 ```
 
 ### domain
@@ -187,8 +199,14 @@ pluginAssetsRetry({
 The test function of the asset to be retried. For example:
 
 ```js
+// Using string pattern (will be converted to RegExp)
 pluginAssetsRetry({
-  test: /cdn\.example\.com/,
+  test: "cdn\\.example\\.com",
+});
+
+// Using function
+pluginAssetsRetry({
+  test: (url) => url.includes("cdn.example.com"),
 });
 ```
 
@@ -367,6 +385,7 @@ When you use Assets Retry plugin, the Rsbuild injects some runtime code into the
 - Avoid configuring sensitive information in Assets Retry plugin, such as internal tokens.
 - Avoid referencing variables or methods outside of `onRetry`, `onSuccess`, and `onFail`.
 - Avoid using syntax with compatibility issues in `onRetry`, `onSuccess` and `onFail` as these functions are inlined directly into the HTML.
+- When no rules match a resource, the plugin will not retry that resource. Make sure to configure appropriate rules for all resources you want to retry.
 
 Here's an example of incorrect usage:
 

@@ -21,7 +21,7 @@ export type { PluginAssetsRetryOptions };
 
 export const PLUGIN_ASSETS_RETRY_NAME = 'rsbuild:assets-retry';
 
-function normalizeRule(rule: PluginAssetsRetryOptions): RuntimeRetryOptions {
+function normalizeRule(rule: RuntimeRetryOptions): RuntimeRetryOptions {
   const defaultOptions: RuntimeRetryOptions = {
     max: 3,
     type: ['link', 'script', 'img'],
@@ -50,22 +50,20 @@ function normalizeRule(rule: PluginAssetsRetryOptions): RuntimeRetryOptions {
 }
 
 function getRuntimeOptions(
-  userOptions: PluginAssetsRetryOptions | PluginAssetsRetryOptions[],
+  userOptions: PluginAssetsRetryOptions,
 ): RuntimeRetryRules {
-  if (Array.isArray(userOptions)) {
-    return userOptions.map(normalizeRule);
+  if ('rules' in userOptions) {
+    return userOptions.rules.map(normalizeRule);
   }
-  return [normalizeRule(userOptions)];
+  const { inlineScript, minify, ...runtimeOptions } = userOptions;
+  return [normalizeRule(runtimeOptions)];
 }
 
 async function getRetryCode(
-  options: PluginAssetsRetryOptions | PluginAssetsRetryOptions[],
+  options: PluginAssetsRetryOptions,
   minify = false,
 ): Promise<string> {
   const filename = 'initialChunkRetry';
-  const optionsToSerialize = Array.isArray(options)
-    ? options
-    : { minify, inlineScript: true, ...options };
 
   const runtimeFilePath = path.join(
     __dirname,
@@ -73,7 +71,7 @@ async function getRetryCode(
     minify ? `${filename}.min.js` : `${filename}.js`,
   );
   const runtimeCode = await fs.promises.readFile(runtimeFilePath, 'utf-8');
-  const runtimeOptions = getRuntimeOptions(optionsToSerialize);
+  const runtimeOptions = getRuntimeOptions(options);
 
   return `(function(){${runtimeCode}})()`.replace(
     '__RUNTIME_GLOBALS_OPTIONS__',
@@ -82,14 +80,12 @@ async function getRetryCode(
 }
 
 export const pluginAssetsRetry = (
-  userOptions: PluginAssetsRetryOptions | PluginAssetsRetryOptions[] = {},
+  userOptions: PluginAssetsRetryOptions = {},
 ): RsbuildPlugin => ({
   name: PLUGIN_ASSETS_RETRY_NAME,
   setup(api) {
-    const isMultipleRules = Array.isArray(userOptions);
-    const { inlineScript = true } = isMultipleRules
-      ? { inlineScript: true }
-      : userOptions;
+    const isMultipleRules = 'rules' in userOptions;
+    const { inlineScript = true } = userOptions;
 
     const getScriptPath = (environment: EnvironmentContext) => {
       const distDir = environment.config.output.distPath.js;
@@ -98,16 +94,19 @@ export const pluginAssetsRetry = (
 
     const formatOptions = (
       config: NormalizedEnvironmentConfig,
-    ): PluginAssetsRetryOptions | PluginAssetsRetryOptions[] => {
-      if (isMultipleRules) {
-        return userOptions.map((rule) => {
-          const options = { ...rule };
-          // options.crossOrigin should be same as html.crossorigin by default
-          if (options.crossOrigin === undefined) {
-            options.crossOrigin = config.html.crossorigin;
-          }
-          return options;
-        });
+    ): PluginAssetsRetryOptions => {
+      if (isMultipleRules && 'rules' in userOptions) {
+        return {
+          ...userOptions,
+          rules: userOptions.rules.map((rule) => {
+            const options = { ...rule };
+            // options.crossOrigin should be same as html.crossorigin by default
+            if (options.crossOrigin === undefined) {
+              options.crossOrigin = config.html.crossorigin;
+            }
+            return options;
+          }),
+        };
       }
 
       const options = { ...userOptions };
@@ -129,7 +128,7 @@ export const pluginAssetsRetry = (
     };
 
     const getMinifyOption = (config: NormalizedEnvironmentConfig): boolean => {
-      if (!isMultipleRules && userOptions.minify !== undefined) {
+      if (userOptions.minify !== undefined) {
         return userOptions.minify;
       }
       const minify =
@@ -197,9 +196,7 @@ export const pluginAssetsRetry = (
 
       chain.plugin('async-chunk-retry').use(AsyncChunkRetryPlugin, [
         {
-          options: isMultipleRules
-            ? (options as PluginAssetsRetryOptions[])
-            : [options as PluginAssetsRetryOptions],
+          options: getRuntimeOptions(options),
           minify,
           isRspack,
         },

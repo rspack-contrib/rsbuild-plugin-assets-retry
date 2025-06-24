@@ -119,7 +119,7 @@ export function createBlockMiddleware({
 
 export async function createRsbuildWithMiddleware(
   middleware: RequestHandler | RequestHandler[],
-  options: PluginAssetsRetryOptions | PluginAssetsRetryOptions[],
+  options: PluginAssetsRetryOptions,
   entry?: string,
   port?: number,
   assetPrefix?: string,

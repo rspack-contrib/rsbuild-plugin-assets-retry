@@ -1,6 +1,6 @@
 import type { CrossOrigin } from '@rsbuild/core';
 
-export type PluginAssetsRetryOptions = {
+export type RuntimeRetryOptions = {
   /**
    * The maximum number of retries for a single asset.
    * @default 3
@@ -47,6 +47,14 @@ export type PluginAssetsRetryOptions = {
     | boolean
     | ((context: { times: number; originalQuery: string }) => string);
   /**
+   * The delay time between retries. Unit: ms
+   * @default 0
+   */
+  delay?: number | ((context: AssetsRetryHookContext) => number);
+};
+
+export type CompileTimeOptions = {
+  /**
    * Whether to inline the runtime JavaScript code of Assets Retry plugin into the HTML file.
    * @default true
    */
@@ -56,19 +64,18 @@ export type PluginAssetsRetryOptions = {
    * @default rsbuildConfig.mode === 'production'
    */
   minify?: boolean;
-  /**
-   * The delay time between retries. Unit: ms
-   * @default 0
-   */
-  delay?: number | ((context: AssetsRetryHookContext) => number);
 };
 
-export type RuntimeRetryOptions = Omit<
-  PluginAssetsRetryOptions,
-  'inlineScript' | 'minify'
->;
+export type PluginAssetsRetryOptions = 
+  | ({
+      /**
+       * Multiple retry rules
+       */
+      rules: RuntimeRetryOptions[];
+    } & CompileTimeOptions)
+  | (RuntimeRetryOptions & CompileTimeOptions);
 
-export type RuntimeRetryRules = PluginAssetsRetryOptions[];
+export type RuntimeRetryRules = RuntimeRetryOptions[];
 
 export type AssetsRetryHookContext = {
   url: string;

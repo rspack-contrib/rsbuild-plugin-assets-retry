@@ -57,18 +57,28 @@ type AssetsRetryHookContext = {
   isAsyncChunk: boolean;
 };
 
-type AssetsRetryOptions = {
+type RuntimeRetryOptions = {
   type?: string[];
   domain?: string[];
   max?: number;
   test?: string | ((url: string) => boolean);
   crossOrigin?: boolean | "anonymous" | "use-credentials";
-  inlineScript?: boolean;
   delay?: number | ((context: AssetsRetryHookContext) => number);
   onRetry?: (context: AssetsRetryHookContext) => void;
   onSuccess?: (context: AssetsRetryHookContext) => void;
   onFail?: (context: AssetsRetryHookContext) => void;
 };
+
+type PluginAssetsRetryOptions = 
+  | ({
+      rules: RuntimeRetryOptions[];
+      inlineScript?: boolean;
+      minify?: boolean;
+    })
+  | (RuntimeRetryOptions & {
+      inlineScript?: boolean;
+      minify?: boolean;
+    });
 ```
 
 - **默认值：**
@@ -78,7 +88,7 @@ const defaultOptions = {
   type: ["script", "link", "img"],
   domain: [],
   max: 3,
-  test: "",
+  test: undefined,
   crossOrigin: false,
   delay: 0,
   onRetry: () => {},
@@ -91,35 +101,37 @@ const defaultOptions = {
 ### 多规则配置
 插件支持配置多个重试规则，类似于 webpack loaders 的配置方式。每个规则可以针对不同的资源使用不同的重试策略。
 
-使用多规则时，插件会根据 `test` 和 `domain` 条件为每个资源找到第一个匹配的规则。如果没有规则匹配，将使用默认配置。
+使用多规则时，插件会根据 `test` 和 `domain` 条件为每个资源找到第一个匹配的规则。如果没有规则匹配，该资源将不会被重试。
 
 规则按顺序评估，第一个匹配的规则将被应用：
 
 ```ts
-pluginAssetsRetry([
-  {
-    // 规则 1：针对特定 CDN 域名和模式匹配的关键资源
-    domain: ["cdn1.com", "cdn2.com"],
-    test: /critical\.(js|css)$/,
-    max: 5,
-    onRetry: (context) => {
-      console.log(`关键资源重试: ${context.url}`);
+pluginAssetsRetry({
+  rules: [
+    {
+      // 规则 1：针对特定 CDN 域名和模式匹配的关键资源
+      domain: ["cdn1.com", "cdn2.com"],
+      test: "critical\\.(js|css)$",
+      max: 5,
+      onRetry: (context) => {
+        console.log(`关键资源重试: ${context.url}`);
+      },
     },
-  },
-  {
-    // 规则 2：针对图片资源使用不同的重试次数
-    test: /\.(png|jpg|jpeg|gif|svg)$/,
-    max: 2,
-    onRetry: (context) => {
-      console.log(`图片重试: ${context.url}`);
+    {
+      // 规则 2：针对图片资源使用不同的重试次数
+      test: "\\.(png|jpg|jpeg|gif|svg)$",
+      max: 2,
+      onRetry: (context) => {
+        console.log(`图片重试: ${context.url}`);
+      },
     },
-  },
-  {
-    // 规则 3：其他资源的通用规则
-    domain: ["cdn3.com"],
-    max: 3,
-  }
-]);
+    {
+      // 规则 3：其他资源的通用规则
+      domain: ["cdn3.com"],
+      max: 3,
+    }
+  ]
+});
 ```
 
 ### domain
@@ -182,11 +194,17 @@ pluginAssetsRetry({
 - **类型：** `string | ((url: string) => boolean) | undefined`
 - **默认值：** `undefined`
 
-匹配资源 URL 的正则表达式或函数，默认匹配所有资源。比如：
+匹配资源 URL 的字符串模式或函数。比如：
 
 ```js
+// 使用字符串模式（将被转换为 RegExp）
 pluginAssetsRetry({
-  test: /cdn\.example\.com/,
+  test: "cdn\\.example\\.com",
+});
+
+// 使用函数
+pluginAssetsRetry({
+  test: (url) => url.includes("cdn.example.com"),
 });
 ```
 
@@ -365,6 +383,7 @@ pluginAssetsRetry({
 - 避免在 Assets Retry 插件中配置敏感信息，比如内部使用的 token。
 - 避免在 `onRetry`，`onSuccess`，`onFail` 中引用函数外部的变量或方法。
 - 避免在 `onRetry`，`onSuccess`，`onFail` 中使用有兼容性问题的语法，因为这些函数会被直接内联到 HTML 中。
+- 当没有规则匹配某个资源时，插件将不会重试该资源。请确保为所有需要重试的资源配置了合适的规则。
 
 以下是一个错误示例：
 

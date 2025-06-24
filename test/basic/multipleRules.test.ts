@@ -24,29 +24,31 @@ test('should use different retry counts for different domains with multiple rule
   const port = await getRandomPort();
   const rsbuild = await createRsbuildWithMiddleware(
     asyncChunkBlockedMiddleware,
-    [
-      {
-        domain: [`localhost:${port}`],
-        max: 2,
-        test: 'AsyncCompTest',
-        onRetry(context) {
-          console.info('onRetry-rule1', context);
+    {
+      rules: [
+        {
+          domain: [`localhost:${port}`],
+          max: 2,
+          test: 'AsyncCompTest',
+          onRetry(context) {
+            console.info('onRetry-rule1', context);
+          },
+          onFail(context) {
+            console.info('onFail-rule1', context);
+          },
         },
-        onFail(context) {
-          console.info('onFail-rule1', context);
+        {
+          domain: ['cdn3.com'],
+          max: 4,
+          onRetry(context) {
+            console.info('onRetry-rule2', context);
+          },
+          onFail(context) {
+            console.info('onFail-rule2', context);
+          },
         },
-      },
-      {
-        domain: ['cdn3.com'],
-        max: 4,
-        onRetry(context) {
-          console.info('onRetry-rule2', context);
-        },
-        onFail(context) {
-          console.info('onFail-rule2', context);
-        },
-      },
-    ],
+      ],
+    },
     undefined,
     port,
   );
@@ -72,28 +74,30 @@ test('should match rules based on test pattern with multiple rules', async ({
     urlPrefix: '/static/js/async/src_AsyncCompTest_tsx.js',
   });
 
-  const rsbuild = await createRsbuildWithMiddleware(blockedMiddleware, [
-    {
-      test: 'AsyncCompTest',
-      max: 1,
-      onRetry(context) {
-        console.info('onRetry', context);
+  const rsbuild = await createRsbuildWithMiddleware(blockedMiddleware, {
+    rules: [
+      {
+        test: 'AsyncCompTest',
+        max: 1,
+        onRetry(context) {
+          console.info('onRetry', context);
+        },
+        onFail(context) {
+          console.info('onFail', context);
+        },
       },
-      onFail(context) {
-        console.info('onFail', context);
+      {
+        test: 'OtherChunk',
+        max: 3,
+        onRetry(context) {
+          console.info('onRetry', context);
+        },
+        onFail(context) {
+          console.info('onFail', context);
+        },
       },
-    },
-    {
-      test: 'OtherChunk',
-      max: 3,
-      onRetry(context) {
-        console.info('onRetry', context);
-      },
-      onFail(context) {
-        console.info('onFail', context);
-      },
-    },
-  ]);
+    ],
+  });
 
   const { onRetryContextList, onFailContextList } = await proxyPageConsole(
     page,
@@ -117,23 +121,25 @@ test('should not retry when no rules match', async ({ page }) => {
     urlPrefix: '/static/js/async/src_AsyncCompTest_tsx.js',
   });
 
-  const rsbuild = await createRsbuildWithMiddleware(blockedMiddleware, [
-    {
-      test: 'NonExistentPattern',
-      max: 5,
-    },
-    {
-      domain: ['non-existent-domain.com'],
-      max: 6,
-    },
-  ]);
+  const rsbuild = await createRsbuildWithMiddleware(blockedMiddleware, {
+    rules: [
+      {
+        test: 'NonExistentPattern',
+        max: 5,
+      },
+      {
+        domain: ['non-existent-domain.com'],
+        max: 6,
+      },
+    ],
+  });
 
   await gotoPage(page, rsbuild);
   const compTestElement = page.locator('#async-comp-test-error');
 
   // Should not retry when no rules match
   await expect(compTestElement).toHaveText(
-    /ChunkLoadError: Loading chunk src_AsyncCompTest_tsx from/,
+    /ChunkLoadError: Loading chunk src_AsyncCompTest_tsx failed/,
   );
 
   await rsbuild.server.close();
@@ -147,22 +153,24 @@ test('should match first rule when multiple rules could match', async ({
     urlPrefix: '/static/js/async/src_AsyncCompTest_tsx.js',
   });
 
-  const rsbuild = await createRsbuildWithMiddleware(blockedMiddleware, [
-    {
-      test: 'AsyncCompTest',
-      max: 2,
-      onFail(context) {
-        console.info('onFail-firstRule', context);
+  const rsbuild = await createRsbuildWithMiddleware(blockedMiddleware, {
+    rules: [
+      {
+        test: 'AsyncCompTest',
+        max: 2,
+        onFail(context) {
+          console.info('onFail-firstRule', context);
+        },
       },
-    },
-    {
-      test: 'AsyncCompTest',
-      max: 5,
-      onFail(context) {
-        console.info('onFail-secondRule', context);
+      {
+        test: 'AsyncCompTest',
+        max: 5,
+        onFail(context) {
+          console.info('onFail-secondRule', context);
+        },
       },
-    },
-  ]);
+    ],
+  });
 
   await gotoPage(page, rsbuild);
   const compTestElement = page.locator('#async-comp-test-error');
@@ -181,22 +189,24 @@ test('should work with multiple rules for initial chunks', async ({ page }) => {
     urlPrefix: '/static/js/index.js',
   });
 
-  const rsbuild = await createRsbuildWithMiddleware(blockedMiddleware, [
-    {
-      test: 'index\\.js',
-      max: 2,
-      onRetry(context) {
-        console.info('onRetry', context);
+  const rsbuild = await createRsbuildWithMiddleware(blockedMiddleware, {
+    rules: [
+      {
+        test: 'index\\.js',
+        max: 2,
+        onRetry(context) {
+          console.info('onRetry', context);
+        },
+        onFail(context) {
+          console.info('onFail', context);
+        },
       },
-      onFail(context) {
-        console.info('onFail', context);
+      {
+        test: 'other\\.js',
+        max: 4,
       },
-    },
-    {
-      test: 'other\\.js',
-      max: 4,
-    },
-  ]);
+    ],
+  });
 
   const { onRetryContextList, onFailContextList } = await proxyPageConsole(
     page,
@@ -221,32 +231,34 @@ test('should work with function tester in multiple rules for initial chunks (CSS
     urlPrefix: '/static/css/index.css',
   });
 
-  const rsbuild = await createRsbuildWithMiddleware(blockedMiddleware, [
-    {
-      // This function should return false for CSS files, so rule should be skipped
-      test: (url: string) => url.includes('NonExistentPattern'),
-      max: 1,
-      type: ['link'],
-      onRetry(context) {
-        console.info('onRetry', context);
+  const rsbuild = await createRsbuildWithMiddleware(blockedMiddleware, {
+    rules: [
+      {
+        // This function should return false for CSS files, so rule should be skipped
+        test: (url: string) => url.includes('NonExistentPattern'),
+        max: 1,
+        type: ['link'],
+        onRetry(context) {
+          console.info('onRetry', context);
+        },
+        onFail(context) {
+          console.info('onFail', context);
+        },
       },
-      onFail(context) {
-        console.info('onFail', context);
+      {
+        // This function should return true and match the CSS file
+        test: (url: string) => url.includes('.css'),
+        max: 2,
+        type: ['link'],
+        onRetry(context) {
+          console.info('onRetry', context);
+        },
+        onSuccess(context) {
+          console.info('onSuccess', context);
+        },
       },
-    },
-    {
-      // This function should return true and match the CSS file
-      test: (url: string) => url.includes('.css'),
-      max: 2,
-      type: ['link'],
-      onRetry(context) {
-        console.info('onRetry', context);
-      },
-      onSuccess(context) {
-        console.info('onSuccess', context);
-      },
-    },
-  ]);
+    ],
+  });
 
   const { onRetryContextList, onSuccessContextList } = await proxyPageConsole(
     page,
