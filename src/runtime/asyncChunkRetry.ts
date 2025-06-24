@@ -55,10 +55,6 @@ declare global {
   var __RUNTIME_GLOBALS_RSBUILD_LOAD_STYLESHEET__: LoadStyleSheet;
   // RuntimeGlobals.publicPath
   var __RUNTIME_GLOBALS_PUBLIC_PATH__: string;
-  // user options
-  var __RETRY_OPTIONS__: NormalizedRuntimeRetryOptions;
-  // global variables shared with initial chunk retry runtime
-  var __RB_ASYNC_CHUNKS__: Record<ChunkFilename, boolean>;
 }
 
 // init retryCollector and nextRetry function
