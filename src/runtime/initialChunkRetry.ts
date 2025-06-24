@@ -21,12 +21,6 @@ const TAG_TYPE: { [propName: string]: new () => HTMLElement } = {
   img: HTMLImageElement,
 };
 
-declare global {
-  // global variables shared with async chunk
-  var __RB_ASYNC_CHUNKS__: Record<string, boolean>;
-  var __RETRY_OPTIONS__: NormalizedRuntimeRetryOptions;
-}
-
 function getRequestUrl(element: HTMLElement) {
   if (
     element instanceof HTMLScriptElement ||

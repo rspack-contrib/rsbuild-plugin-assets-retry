@@ -35,7 +35,7 @@ bun add @rsbuild/plugin-assets-retry -D
 你可以在 `rsbuild.config.ts` 文件中注册插件：
 
 ```ts
-import { pluginAssetsRetry } from "@rsbuild/plugin-assets-retry";
+import { pluginAssetsRetry } from '@rsbuild/plugin-assets-retry';
 
 export default {
   plugins: [pluginAssetsRetry()],
@@ -62,7 +62,7 @@ type AssetsRetryOptions = {
   domain?: string[];
   max?: number;
   test?: string | ((url: string) => boolean);
-  crossOrigin?: boolean | "anonymous" | "use-credentials";
+  crossOrigin?: boolean | 'anonymous' | 'use-credentials';
   inlineScript?: boolean;
   delay?: number | ((context: AssetsRetryHookContext) => number);
   onRetry?: (context: AssetsRetryHookContext) => void;
@@ -75,10 +75,10 @@ type AssetsRetryOptions = {
 
 ```ts
 const defaultOptions = {
-  type: ["script", "link", "img"],
+  type: ['script', 'link', 'img'],
   domain: [],
   max: 3,
-  test: "",
+  test: '',
   crossOrigin: false,
   delay: 0,
   onRetry: () => {},
@@ -101,11 +101,11 @@ const defaultOptions = {
 defineConfig({
   plugins: [
     pluginAssetsRetry({
-      domain: ["cdn1.com", "cdn2.com", "cdn3.com"],
-    })
+      domain: ['cdn1.com', 'cdn2.com', 'cdn3.com'],
+    }),
   ],
   output: {
-    assetPrefix: "https://cdn1.com", // 或者 "//cdn1.com"
+    assetPrefix: 'https://cdn1.com', // 或者 "//cdn1.com"
   },
 });
 ```
@@ -125,7 +125,7 @@ defineConfig({
 
 ```js
 pluginAssetsRetry({
-  type: ["script", "link"],
+  type: ['script', 'link'],
 });
 ```
 
@@ -180,7 +180,7 @@ pluginAssetsRetry({
 pluginAssetsRetry({
   onRetry: ({ times, domain, url, tagName, isAsyncChunk }) => {
     console.log(
-      `Retry ${times} times, domain: ${domain}, url: ${url}, tagName: ${tagName}, isAsyncChunk: ${isAsyncChunk}`
+      `Retry ${times} times, domain: ${domain}, url: ${url}, tagName: ${tagName}, isAsyncChunk: ${isAsyncChunk}`,
     );
   },
 });
@@ -196,7 +196,7 @@ pluginAssetsRetry({
 pluginAssetsRetry({
   onSuccess: ({ times, domain, url, tagName, isAsyncChunk }) => {
     console.log(
-      `Retry ${times} times, domain: ${domain}, url: ${url}, tagName: ${tagName}, isAsyncChunk: ${isAsyncChunk}`
+      `Retry ${times} times, domain: ${domain}, url: ${url}, tagName: ${tagName}, isAsyncChunk: ${isAsyncChunk}`,
     );
   },
 });
@@ -212,7 +212,7 @@ pluginAssetsRetry({
 pluginAssetsRetry({
   onFail: ({ times, domain, url, tagName, isAsyncChunk }) => {
     console.log(
-      `Retry ${times} times, domain: ${domain}, url: ${url}, tagName: ${tagName}, isAsyncChunk: ${isAsyncChunk}`
+      `Retry ${times} times, domain: ${domain}, url: ${url}, tagName: ${tagName}, isAsyncChunk: ${isAsyncChunk}`,
     );
   },
 });
@@ -319,7 +319,7 @@ pluginAssetsRetry({
 ```js
 // 通过次数来计算延迟时间
 pluginAssetsRetry({
-  delay: (ctx) => (ctx.times + 1) * 1000,
+  delay: ctx => (ctx.times + 1) * 1000,
 });
 ```
 
@@ -334,12 +334,12 @@ pluginAssetsRetry({
 以下是一个错误示例：
 
 ```js
-import { someMethod } from "utils";
+import { someMethod } from 'utils';
 
 pluginAssetsRetry({
   onRetry() {
     // 错误用法，包含了敏感信息
-    const privateToken = "a-private-token";
+    const privateToken = 'a-private-token';
 
     // 错误用法，使用了外部的方法
     someMethod(privateToken);
