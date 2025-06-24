@@ -87,19 +87,8 @@ function validateTargetInfo(
     return false;
   }
 
-  // If no rules provided, use default rule
+  // If no rules provided, no retry
   if (!rules || rules.length === 0) {
-    const defaultRule: RuntimeRetryOptions = {
-      max: 3,
-      type: ['link', 'script', 'img'],
-      domain: [],
-      crossOrigin: false,
-      delay: 0,
-    };
-
-    if (defaultRule.type!.indexOf(tagName) !== -1) {
-      return { target, tagName, url, rule: defaultRule };
-    }
     return false;
   }
 
@@ -111,15 +100,12 @@ function validateTargetInfo(
     }
 
     // Check test condition
-    let tester = rule.test;
+    const tester = rule.test;
     if (tester) {
-      if (tester instanceof RegExp) {
-        if (!tester.test(url)) continue;
-      } else if (typeof tester === 'string') {
+      if (typeof tester === 'string') {
         const regexp = new RegExp(tester);
-        tester = (str: string) => regexp.test(str);
-      }
-      if (typeof tester === 'function' && !tester(url)) {
+        if (!regexp.test(url)) continue;
+      } else if (typeof tester === 'function' && !tester(url)) {
         continue;
       }
     }
@@ -137,19 +123,7 @@ function validateTargetInfo(
     return { target, tagName, url, rule };
   }
 
-  // If no rule matches, use default rule
-  const defaultRule: RuntimeRetryOptions = {
-    max: 3,
-    type: ['link', 'script', 'img'],
-    domain: [],
-    crossOrigin: false,
-    delay: 0,
-  };
-
-  if (defaultRule.type!.indexOf(tagName) !== -1) {
-    return { target, tagName, url, rule: defaultRule };
-  }
-
+  // If no rule matches, no retry
   return false;
 }
 

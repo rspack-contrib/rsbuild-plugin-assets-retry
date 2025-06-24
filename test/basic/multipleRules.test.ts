@@ -111,7 +111,7 @@ test('should match rules based on test pattern with multiple rules', async ({
   await rsbuild.server.close();
 });
 
-test('should use default rule when no rules match', async ({ page }) => {
+test('should not retry when no rules match', async ({ page }) => {
   const blockedMiddleware = createBlockMiddleware({
     blockNum: 100,
     urlPrefix: '/static/js/async/src_AsyncCompTest_tsx.js',
@@ -131,9 +131,9 @@ test('should use default rule when no rules match', async ({ page }) => {
   await gotoPage(page, rsbuild);
   const compTestElement = page.locator('#async-comp-test-error');
 
-  // Should use default max retries (3) when no rules match
+  // Should not retry when no rules match
   await expect(compTestElement).toHaveText(
-    /ChunkLoadError: Loading chunk src_AsyncCompTest_tsx from "static\/js\/async\/src_AsyncCompTest_tsx\.js" failed after 3 retries/,
+    /ChunkLoadError: Loading chunk src_AsyncCompTest_tsx from/,
   );
 
   await rsbuild.server.close();

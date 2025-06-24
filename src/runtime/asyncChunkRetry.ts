@@ -88,29 +88,20 @@ function getQueryFromUrl(url: string) {
   return parts ? `?${parts.split('#')[0]}` : '';
 }
 
-function findMatchingRule(url: string): RuntimeRetryOptions {
-  // If no rules provided, use default
+function findMatchingRule(url: string): RuntimeRetryOptions | null {
+  // If no rules provided, no retry
   if (!rules || rules.length === 0) {
-    return {
-      max: 3,
-      type: ['link', 'script', 'img'],
-      domain: [],
-      crossOrigin: false,
-      delay: 0,
-    };
+    return null;
   }
 
   for (const rule of rules) {
     // Check test condition
-    let tester = rule.test;
+    const tester = rule.test;
     if (tester) {
-      if (tester instanceof RegExp) {
-        if (!tester.test(url)) continue;
-      } else if (typeof tester === 'string') {
+      if (typeof tester === 'string') {
         const regexp = new RegExp(tester);
-        tester = (str: string) => regexp.test(str);
-      }
-      if (typeof tester === 'function' && !tester(url)) {
+        if (!regexp.test(url)) continue;
+      } else if (typeof tester === 'function' && !tester(url)) {
         continue;
       }
     }
@@ -128,14 +119,8 @@ function findMatchingRule(url: string): RuntimeRetryOptions {
     return rule;
   }
 
-  // Return default rule if no match
-  return {
-    max: 3,
-    type: ['link', 'script', 'img'],
-    domain: [],
-    crossOrigin: false,
-    delay: 0,
-  };
+  // Return null if no match
+  return null;
 }
 
 function getUrlRetryQuery(
@@ -183,7 +168,7 @@ function getCurrentRetry(
     : retryCollector[chunkId]?.[existRetryTimes];
 }
 
-function initRetry(chunkId: string, isCssAsyncChunk: boolean): Retry {
+function initRetry(chunkId: string, isCssAsyncChunk: boolean): Retry | null {
   const originalScriptFilename = isCssAsyncChunk
     ? originalGetCssFilename(chunkId)
     : originalGetChunkScriptFilename(chunkId);
@@ -200,6 +185,11 @@ function initRetry(chunkId: string, isCssAsyncChunk: boolean): Retry {
   const originalQuery = getQueryFromUrl(originalSrcUrl);
 
   const rule = findMatchingRule(originalSrcUrl);
+  
+  // If no rule matches, don't retry
+  if (!rule) {
+    return null;
+  }
 
   const existRetryTimes = 0;
   const nextDomain = findCurrentDomain(originalSrcUrl, rule.domain || []);
@@ -225,14 +215,17 @@ function nextRetry(
   chunkId: string,
   existRetryTimes: number,
   isCssAsyncChunk: boolean,
-): Retry {
+): Retry | null {
   const currRetry = getCurrentRetry(chunkId, existRetryTimes, isCssAsyncChunk);
 
-  let nextRetry: Retry;
+  let nextRetry: Retry | null;
   const nextExistRetryTimes = existRetryTimes + 1;
 
   if (existRetryTimes === 0 || currRetry === undefined) {
     nextRetry = initRetry(chunkId, isCssAsyncChunk);
+    if (!nextRetry) {
+      return null;
+    }
     if (isCssAsyncChunk) {
       retryCssCollector[chunkId] = [];
     } else {
@@ -356,6 +349,12 @@ function ensureChunk(chunkId: string): Promise<unknown> {
         existRetryTimes,
         isCssAsyncChunkLoadFailed,
       );
+      
+      // If no retry rule matches, throw the original error
+      if (!retryResult) {
+        throw error;
+      }
+      
       originalScriptFilename = retryResult.originalScriptFilename;
       nextRetryUrl = retryResult.nextRetryUrl;
       nextDomain = retryResult.nextDomain;
