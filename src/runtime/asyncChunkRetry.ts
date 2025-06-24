@@ -185,7 +185,7 @@ function initRetry(chunkId: string, isCssAsyncChunk: boolean): Retry | null {
   const originalQuery = getQueryFromUrl(originalSrcUrl);
 
   const rule = findMatchingRule(originalSrcUrl);
-  
+
   // If no rule matches, don't retry
   if (!rule) {
     return null;
@@ -349,12 +349,12 @@ function ensureChunk(chunkId: string): Promise<unknown> {
         existRetryTimes,
         isCssAsyncChunkLoadFailed,
       );
-      
+
       // If no retry rule matches, throw the original error
       if (!retryResult) {
         throw error;
       }
-      
+
       originalScriptFilename = retryResult.originalScriptFilename;
       nextRetryUrl = retryResult.nextRetryUrl;
       nextDomain = retryResult.nextDomain;

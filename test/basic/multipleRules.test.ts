@@ -224,7 +224,9 @@ test('should work with multiple rules for initial chunks', async ({ page }) => {
   await rsbuild.server.close();
 });
 
-test('should work with function tester in multiple rules for initial chunks (CSS)', async ({ page }) => {
+test('should work with function tester in multiple rules for initial chunks (CSS)', async ({
+  page,
+}) => {
   const { logs, restore } = proxyConsole();
   const blockedMiddleware = createBlockMiddleware({
     blockNum: 2, // Block 2 times so we can see retry behavior

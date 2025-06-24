@@ -66,7 +66,7 @@ export type CompileTimeOptions = {
   minify?: boolean;
 };
 
-export type PluginAssetsRetryOptions = 
+export type PluginAssetsRetryOptions =
   | ({
       /**
        * Multiple retry rules
