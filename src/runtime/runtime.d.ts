@@ -6,4 +6,4 @@ declare type NormalizedRuntimeRetryOptions = import('../types.js').NormalizedRun
 
 // global variables shared between initialChunkRetry and asyncChunkRetry
 var __RB_ASYNC_CHUNKS__: Record<string, boolean>;
-var __RETRY_OPTIONS__: NormalizedRuntimeRetryOptions;
+var __RETRY_OPTIONS__: NormalizedRuntimeRetryOptions | NormalizedRuntimeRetryOptions[];
