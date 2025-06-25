@@ -12,6 +12,7 @@ import { AsyncChunkRetryPlugin } from './AsyncChunkRetryPlugin.js';
 import type {
   NormalizedRuntimeRetryOptions,
   PluginAssetsRetryOptions,
+  RuntimeRetryOptions,
 } from './types.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -22,38 +23,48 @@ export const PLUGIN_ASSETS_RETRY_NAME = 'rsbuild:assets-retry';
 
 function getRuntimeOptions(
   userOptions: PluginAssetsRetryOptions,
-): NormalizedRuntimeRetryOptions {
-  const { inlineScript, minify, ...restOptions } = userOptions;
+  defaultCrossOrigin: boolean | 'anonymous' | 'use-credentials',
+): NormalizedRuntimeRetryOptions[] {
+  const { inlineScript, minify, ...runtimeOptions } = userOptions;
   const defaultOptions: NormalizedRuntimeRetryOptions = {
     max: 3,
     type: ['link', 'script', 'img'],
     domain: [],
-    crossOrigin: false,
+    crossOrigin: defaultCrossOrigin,
     delay: 0,
     addQuery: false,
   };
 
-  const result: NormalizedRuntimeRetryOptions = {
-    ...defaultOptions,
-    ...restOptions,
-  };
+  function normalizeOption(
+    options: RuntimeRetryOptions,
+  ): NormalizedRuntimeRetryOptions {
+    const result: NormalizedRuntimeRetryOptions = {
+      ...defaultOptions,
+      ...options,
+    };
 
-  // Normalize config
-  if (!Array.isArray(result.type) || result.type.length === 0) {
-    result.type = defaultOptions.type;
+    // Normalize config
+    if (!Array.isArray(result.type) || result.type.length === 0) {
+      result.type = defaultOptions.type;
+    }
+    if (!Array.isArray(result.domain) || result.domain.length === 0) {
+      result.domain = defaultOptions.domain;
+    }
+    if (Array.isArray(result.domain)) {
+      result.domain = result.domain.filter(Boolean);
+    }
+    return result;
   }
-  if (!Array.isArray(result.domain) || result.domain.length === 0) {
-    result.domain = defaultOptions.domain;
-  }
-  if (Array.isArray(result.domain)) {
-    result.domain = result.domain.filter(Boolean);
+  if ('rules' in runtimeOptions) {
+    const result = runtimeOptions.rules.map((i) => normalizeOption(i));
+    return result;
   }
 
-  return result;
+  return [normalizeOption(runtimeOptions)];
 }
 
 async function getRetryCode(
-  runtimeOptions: NormalizedRuntimeRetryOptions,
+  runtimeOptions: NormalizedRuntimeRetryOptions[],
   minify: boolean,
 ): Promise<string> {
   const filename = 'initialChunkRetry';
@@ -79,38 +90,30 @@ export const pluginAssetsRetry = (
       return path.posix.join(distDir, `assets-retry.${PLUGIN_VERSION}.js`);
     };
 
-    const normalizeOptions = (
+    const getDefaultValueFromRsbuildConfig = (
       config: NormalizedEnvironmentConfig,
-    ): PluginAssetsRetryOptions & {
+    ): {
       minify: boolean;
       crossorigin: boolean | 'anonymous' | 'use-credentials';
     } => {
-      const options = { ...userOptions };
+      const minify =
+        typeof config.output.minify === 'boolean'
+          ? config.output.minify
+          : config.output.minify?.js;
 
-      // options.crossOrigin should be same as html.crossorigin by default
-      if (options.crossOrigin === undefined) {
-        options.crossOrigin = config.html.crossorigin;
-      }
-
-      if (options.minify === undefined) {
-        const minify =
-          typeof config.output.minify === 'boolean'
-            ? config.output.minify
-            : config.output.minify?.js;
-        options.minify = minify && config.mode === 'production';
-      }
-
-      return options as PluginAssetsRetryOptions & {
-        minify: boolean;
-        crossorigin: boolean | 'anonymous' | 'use-credentials';
+      return {
+        crossorigin: config.html.crossorigin,
+        minify: Boolean(minify) && config.mode === 'production',
       };
     };
 
     if (inlineScript) {
       api.modifyHTMLTags(async ({ headTags, bodyTags }, { environment }) => {
-        const options = normalizeOptions(environment.config);
-        const runtimeOptions = getRuntimeOptions(options);
-        const code = await getRetryCode(runtimeOptions, options.minify);
+        const { minify, crossorigin } = getDefaultValueFromRsbuildConfig(
+          environment.config,
+        );
+        const runtimeOptions = getRuntimeOptions(userOptions, crossorigin);
+        const code = await getRetryCode(runtimeOptions, minify);
 
         headTags.unshift({
           tag: 'script',
@@ -141,9 +144,11 @@ export const pluginAssetsRetry = (
         { stage: 'additional' },
         async ({ sources, compilation, environment }) => {
           const scriptPath = getScriptPath(environment);
-          const options = normalizeOptions(environment.config);
-          const runtimeOptions = getRuntimeOptions(options);
-          const code = await getRetryCode(runtimeOptions, options.minify);
+          const { crossorigin, minify } = getDefaultValueFromRsbuildConfig(
+            environment.config,
+          );
+          const runtimeOptions = getRuntimeOptions(userOptions, crossorigin);
+          const code = await getRetryCode(runtimeOptions, minify);
           compilation.emitAsset(scriptPath, new sources.RawSource(code));
         },
       );
@@ -156,13 +161,13 @@ export const pluginAssetsRetry = (
         return;
       }
 
-      const options = normalizeOptions(config);
-      const runtimeOptions = getRuntimeOptions(options);
+      const { crossorigin, minify } = getDefaultValueFromRsbuildConfig(config);
+      const runtimeOptions = getRuntimeOptions(userOptions, crossorigin);
       const isRspack = api.context.bundlerType === 'rspack';
 
       chain
         .plugin('async-chunk-retry')
-        .use(AsyncChunkRetryPlugin, [runtimeOptions, isRspack, options.minify]);
+        .use(AsyncChunkRetryPlugin, [runtimeOptions, isRspack, minify]);
     });
   },
 });

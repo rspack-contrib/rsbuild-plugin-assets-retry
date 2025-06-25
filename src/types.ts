@@ -90,5 +90,10 @@ export type CompileTimeRetryOptions = {
   minify?: boolean;
 };
 
-export type PluginAssetsRetryOptions = RuntimeRetryOptions &
-  CompileTimeRetryOptions;
+export type PluginAssetsRetryOptions =
+  // single rule
+  | (RuntimeRetryOptions & CompileTimeRetryOptions)
+  // multiple rules
+  | ({
+      rules: RuntimeRetryOptions[];
+    } & CompileTimeRetryOptions);
