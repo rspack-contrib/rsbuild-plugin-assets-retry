@@ -55,7 +55,6 @@ function validateTargetInfo(
   return { target, tagName, url };
 }
 
-
 function createElement(
   origin: HTMLElement,
   attributes: ScriptElementAttributes,

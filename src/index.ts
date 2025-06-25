@@ -75,8 +75,8 @@ async function getRetryCode(
 ): Promise<string> {
   const filename = 'initialChunkRetry';
   // In production, files are in dist/runtime, in development they are in src/runtime
-  const baseDir = __dirname.includes('/dist/') 
-    ? __dirname 
+  const baseDir = __dirname.includes('/dist/')
+    ? __dirname
     : path.join(__dirname, '..', 'dist');
   const runtimeFilePath = path.join(
     baseDir,

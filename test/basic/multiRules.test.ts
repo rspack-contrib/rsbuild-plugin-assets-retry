@@ -80,15 +80,21 @@ test('should support multiple retry rules', async ({ page }) => {
   expect(cssBlockedResponseCount).toBeGreaterThanOrEqual(1);
 
   // Check retry contexts
-  const jsRetries = onRetryContextList.filter(ctx => ctx.url.includes('.js'));
-  const cssRetries = onRetryContextList.filter(ctx => ctx.url.includes('.css'));
+  const jsRetries = onRetryContextList.filter((ctx) => ctx.url.includes('.js'));
+  const cssRetries = onRetryContextList.filter((ctx) =>
+    ctx.url.includes('.css'),
+  );
 
   expect(jsRetries.length).toBeGreaterThanOrEqual(2);
   expect(cssRetries.length).toBeGreaterThanOrEqual(1);
 
   // Check success contexts
-  const jsSuccess = onSuccessContextList.filter(ctx => ctx.url.includes('.js'));
-  const cssSuccess = onSuccessContextList.filter(ctx => ctx.url.includes('.css'));
+  const jsSuccess = onSuccessContextList.filter((ctx) =>
+    ctx.url.includes('.js'),
+  );
+  const cssSuccess = onSuccessContextList.filter((ctx) =>
+    ctx.url.includes('.css'),
+  );
 
   expect(jsSuccess.length).toBeGreaterThanOrEqual(1);
   expect(cssSuccess.length).toBeGreaterThanOrEqual(1);
@@ -157,7 +163,9 @@ test('should match rules by test function', async ({ page }) => {
   logger.level = 'log';
 });
 
-test('should use first matching rule when multiple rules match', async ({ page }) => {
+test('should use first matching rule when multiple rules match', async ({
+  page,
+}) => {
   logger.level = 'verbose';
   const { logs, restore } = proxyConsole();
 
@@ -187,10 +195,8 @@ test('should use first matching rule when multiple rules match', async ({ page }
     ],
   });
 
-  const { onRetryContextList, onSuccessContextList, onFailContextList } = await proxyPageConsole(
-    page,
-    rsbuild.port,
-  );
+  const { onRetryContextList, onSuccessContextList, onFailContextList } =
+    await proxyPageConsole(page, rsbuild.port);
 
   await gotoPage(page, rsbuild);
   const compTestElement = page.locator('#comp-test');
