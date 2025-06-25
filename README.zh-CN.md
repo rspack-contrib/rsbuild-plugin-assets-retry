@@ -68,6 +68,10 @@ type AssetsRetryOptions = {
   onRetry?: (context: AssetsRetryHookContext) => void;
   onSuccess?: (context: AssetsRetryHookContext) => void;
   onFail?: (context: AssetsRetryHookContext) => void;
+} | {
+  rules: RuntimeRetryOptions[];
+  inlineScript?: boolean;
+  minify?: boolean;
 };
 ```
 
@@ -320,6 +324,76 @@ pluginAssetsRetry({
 // 通过次数来计算延迟时间
 pluginAssetsRetry({
   delay: ctx => (ctx.times + 1) * 1000,
+});
+```
+
+### rules
+
+- **类型：** `RuntimeRetryOptions[]`
+- **默认值：** `undefined`
+
+配置多个重试规则，每个规则可以有不同的选项。规则会按顺序进行评估，第一个匹配的规则将用于重试逻辑。这在你对不同类型的资源或域名有不同的重试需求时非常有用。
+
+使用 `rules` 时，插件会：
+1. 按顺序检查每个规则
+2. 使用第一个 `test` 条件匹配资源 URL 的规则
+3. 如果没有规则匹配，则不会重试该资源
+
+每个规则支持与顶层配置相同的所有选项，包括 `type`、`domain`、`max`、`test`、`crossOrigin`、`delay`、`onRetry`、`onSuccess` 和 `onFail`。
+
+示例 - 不同 CDN 的不同重试策略：
+
+```js
+pluginAssetsRetry({
+  rules: [
+    {
+      // 主 CDN 的规则
+      test: /cdn1\.example\.com/,
+      domain: ['cdn1.example.com', 'cdn1-backup.example.com'],
+      max: 3,
+      delay: 1000,
+    },
+    {
+      // 次要 CDN 的规则，更多重试次数
+      test: /cdn2\.example\.com/,
+      domain: ['cdn2.example.com', 'cdn2-backup.example.com'],
+      max: 5,
+      delay: 500,
+    },
+    {
+      // 其他资源的默认规则
+      domain: ['default.example.com', 'default-backup.example.com'],
+      max: 2,
+    },
+  ],
+});
+```
+
+示例 - 不同资源类型的不同重试策略：
+
+```js
+pluginAssetsRetry({
+  rules: [
+    {
+      // 关键 JavaScript 文件获得更多重试次数
+      test: /\.js$/,
+      max: 5,
+      delay: 1000,
+      onFail: ({ url }) => console.error(`关键 JS 失败: ${url}`),
+    },
+    {
+      // CSS 文件获得较少的重试次数
+      test: /\.css$/,
+      max: 2,
+      delay: 500,
+    },
+    {
+      // 图片获得最少的重试次数
+      test: /\.(png|jpg|gif|svg)$/,
+      max: 1,
+      delay: 0,
+    },
+  ],
 });
 ```
 

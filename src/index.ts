@@ -10,8 +10,10 @@ import { ensureAssetPrefix } from '@rsbuild/core';
 import serialize from 'serialize-javascript';
 import { AsyncChunkRetryPlugin } from './AsyncChunkRetryPlugin.js';
 import type {
+  CompileTimeRetryOptions,
   NormalizedRuntimeRetryOptions,
   PluginAssetsRetryOptions,
+  RuntimeRetryOptions,
 } from './types.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -22,8 +24,21 @@ export const PLUGIN_ASSETS_RETRY_NAME = 'rsbuild:assets-retry';
 
 function getRuntimeOptions(
   userOptions: PluginAssetsRetryOptions,
+): NormalizedRuntimeRetryOptions | NormalizedRuntimeRetryOptions[] {
+  // Check if using rules mode
+  if ('rules' in userOptions && Array.isArray(userOptions.rules)) {
+    return userOptions.rules.map((rule) => normalizeRuntimeOptions(rule));
+  }
+
+  // Single options mode
+  const { inlineScript, minify, ...restOptions } =
+    userOptions as RuntimeRetryOptions & CompileTimeRetryOptions;
+  return normalizeRuntimeOptions(restOptions);
+}
+
+function normalizeRuntimeOptions(
+  options: RuntimeRetryOptions,
 ): NormalizedRuntimeRetryOptions {
-  const { inlineScript, minify, ...restOptions } = userOptions;
   const defaultOptions: NormalizedRuntimeRetryOptions = {
     max: 3,
     type: ['link', 'script', 'img'],
@@ -35,7 +50,7 @@ function getRuntimeOptions(
 
   const result: NormalizedRuntimeRetryOptions = {
     ...defaultOptions,
-    ...restOptions,
+    ...options,
   };
 
   // Normalize config
@@ -53,12 +68,18 @@ function getRuntimeOptions(
 }
 
 async function getRetryCode(
-  runtimeOptions: NormalizedRuntimeRetryOptions,
+  runtimeOptions:
+    | NormalizedRuntimeRetryOptions
+    | NormalizedRuntimeRetryOptions[],
   minify: boolean,
 ): Promise<string> {
   const filename = 'initialChunkRetry';
+  // In production, files are in dist/runtime, in development they are in src/runtime
+  const baseDir = __dirname.includes('/dist/') 
+    ? __dirname 
+    : path.join(__dirname, '..', 'dist');
   const runtimeFilePath = path.join(
-    __dirname,
+    baseDir,
     'runtime',
     minify ? `${filename}.min.js` : `${filename}.js`,
   );
@@ -86,6 +107,21 @@ export const pluginAssetsRetry = (
       crossorigin: boolean | 'anonymous' | 'use-credentials';
     } => {
       const options = { ...userOptions };
+
+      // Handle rules mode
+      if ('rules' in options) {
+        if (options.minify === undefined) {
+          const minify =
+            typeof config.output.minify === 'boolean'
+              ? config.output.minify
+              : config.output.minify?.js;
+          options.minify = minify && config.mode === 'production';
+        }
+        return options as PluginAssetsRetryOptions & {
+          minify: boolean;
+          crossorigin: boolean | 'anonymous' | 'use-credentials';
+        };
+      }
 
       // options.crossOrigin should be same as html.crossorigin by default
       if (options.crossOrigin === undefined) {

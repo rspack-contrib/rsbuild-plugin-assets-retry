@@ -70,6 +70,10 @@ type AssetsRetryOptions = {
   onRetry?: (context: AssetsRetryHookContext) => void;
   onSuccess?: (context: AssetsRetryHookContext) => void;
   onFail?: (context: AssetsRetryHookContext) => void;
+} | {
+  rules: RuntimeRetryOptions[];
+  inlineScript?: boolean;
+  minify?: boolean;
 };
 ```
 
@@ -322,6 +326,76 @@ Or pass a function that receives `AssetsRetryHookContext` and returns the delay 
 // Calculate delay based on retry attempts
 pluginAssetsRetry({
   delay: ctx => (ctx.times + 1) * 1000,
+});
+```
+
+### rules
+
+- **Type:** `RuntimeRetryOptions[]`
+- **Default:** `undefined`
+
+Configure multiple retry rules with different options. Each rule will be evaluated in order, and the first matching rule will be used for retry logic. This is useful when you have different retry requirements for different types of assets or domains.
+
+When using `rules`, the plugin will:
+1. Check each rule in order
+2. Use the first rule whose `test` condition matches the asset URL
+3. If no rule matches, the asset will not be retried
+
+Each rule supports all the same options as the top-level configuration, including `type`, `domain`, `max`, `test`, `crossOrigin`, `delay`, `onRetry`, `onSuccess`, and `onFail`.
+
+Example - Different retry strategies for different CDNs:
+
+```js
+pluginAssetsRetry({
+  rules: [
+    {
+      // Rule for primary CDN
+      test: /cdn1\.example\.com/,
+      domain: ['cdn1.example.com', 'cdn1-backup.example.com'],
+      max: 3,
+      delay: 1000,
+    },
+    {
+      // Rule for secondary CDN with more retries
+      test: /cdn2\.example\.com/,
+      domain: ['cdn2.example.com', 'cdn2-backup.example.com'],
+      max: 5,
+      delay: 500,
+    },
+    {
+      // Default rule for other assets
+      domain: ['default.example.com', 'default-backup.example.com'],
+      max: 2,
+    },
+  ],
+});
+```
+
+Example - Different retry strategies for different asset types:
+
+```js
+pluginAssetsRetry({
+  rules: [
+    {
+      // Critical JavaScript files get more retries
+      test: /\.js$/,
+      max: 5,
+      delay: 1000,
+      onFail: ({ url }) => console.error(`Critical JS failed: ${url}`),
+    },
+    {
+      // CSS files get fewer retries
+      test: /\.css$/,
+      max: 2,
+      delay: 500,
+    },
+    {
+      // Images get minimal retries
+      test: /\.(png|jpg|gif|svg)$/,
+      max: 1,
+      delay: 0,
+    },
+  ],
 });
 ```
 

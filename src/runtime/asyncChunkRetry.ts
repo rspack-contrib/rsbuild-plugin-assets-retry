@@ -58,8 +58,7 @@ declare global {
 }
 
 // init retryCollector and nextRetry function
-const config = __RETRY_OPTIONS__;
-const maxRetries = config.max;
+const configs = __RETRY_OPTIONS__;
 const retryCollector: RetryCollector = {};
 const retryCssCollector: RetryCollector = {};
 
@@ -67,6 +66,37 @@ const retryCssCollector: RetryCollector = {};
 const globalCurrRetrying: Record<ChunkId, Retry | undefined> = {};
 // shared between ensureChunk and loadStyleSheet
 const globalCurrRetryingCss: Record<ChunkId, Retry | undefined> = {};
+
+function findMatchingConfig(
+  url: string,
+  configs: NormalizedRuntimeRetryOptions | NormalizedRuntimeRetryOptions[],
+): NormalizedRuntimeRetryOptions | null {
+  // If single config, return it
+  if (!Array.isArray(configs)) {
+    return configs;
+  }
+
+  // Find the first matching config
+  for (const config of configs) {
+    // If no test, this config matches all
+    if (!config.test) {
+      return config;
+    }
+
+    // Test the URL against the config's test
+    let tester = config.test;
+    if (typeof tester === 'string') {
+      const regexp = new RegExp(tester);
+      tester = (str: string) => regexp.test(str);
+    }
+
+    if (typeof tester === 'function' && tester(url)) {
+      return config;
+    }
+  }
+
+  return null;
+}
 
 function getCurrentRetry(
   chunkId: string,
@@ -78,7 +108,11 @@ function getCurrentRetry(
     : retryCollector[chunkId]?.[existRetryTimes];
 }
 
-function initRetry(chunkId: string, isCssAsyncChunk: boolean): Retry {
+function initRetry(
+  chunkId: string,
+  isCssAsyncChunk: boolean,
+  config: NormalizedRuntimeRetryOptions,
+): Retry {
   const originalScriptFilename = isCssAsyncChunk
     ? originalGetCssFilename(chunkId)
     : originalGetChunkScriptFilename(chunkId);
@@ -117,6 +151,7 @@ function nextRetry(
   chunkId: string,
   existRetryTimes: number,
   isCssAsyncChunk: boolean,
+  config: NormalizedRuntimeRetryOptions,
 ): Retry {
   const currRetry = getCurrentRetry(chunkId, existRetryTimes, isCssAsyncChunk);
 
@@ -124,7 +159,7 @@ function nextRetry(
   const nextExistRetryTimes = existRetryTimes + 1;
 
   if (existRetryTimes === 0 || currRetry === undefined) {
-    nextRetry = initRetry(chunkId, isCssAsyncChunk);
+    nextRetry = initRetry(chunkId, isCssAsyncChunk, config);
     if (isCssAsyncChunk) {
       retryCssCollector[chunkId] = [];
     } else {
@@ -237,11 +272,42 @@ function ensureChunk(chunkId: string): Promise<unknown> {
       ? cssExistRetryTimes
       : jsExistRetryTimes;
 
+    // Get original filename to find matching config
+    try {
+      const filename = isCssAsyncChunkLoadFailed
+        ? originalGetCssFilename(chunkId)
+        : originalGetChunkScriptFilename(chunkId);
+
+      if (!filename) {
+        throw new Error('Failed to get original filename');
+      }
+
+      originalScriptFilename = filename;
+    } catch (e) {
+      console.error(ERROR_PREFIX, 'failed to get original filename', e);
+      throw error;
+    }
+
+    const originalPublicPath = __RUNTIME_GLOBALS_PUBLIC_PATH__;
+    const originalSrcUrl =
+      originalPublicPath[0] === '/' && originalPublicPath[1] !== '/'
+        ? window.origin + originalPublicPath + originalScriptFilename
+        : originalPublicPath + originalScriptFilename;
+
+    // Find matching config
+    const config = findMatchingConfig(originalSrcUrl, configs);
+    if (!config) {
+      throw error;
+    }
+
+    const maxRetries = config.max;
+
     try {
       const retryResult = nextRetry(
         chunkId,
         existRetryTimes,
         isCssAsyncChunkLoadFailed,
+        config,
       );
       originalScriptFilename = retryResult.originalScriptFilename;
       nextRetryUrl = retryResult.nextRetryUrl;
@@ -271,19 +337,7 @@ function ensureChunk(chunkId: string): Promise<unknown> {
       throw error;
     }
 
-    // Filter by config.test and config.domain
-    let tester = config.test;
-    if (tester) {
-      if (typeof tester === 'string') {
-        const regexp = new RegExp(tester);
-        tester = (str: string) => regexp.test(str);
-      }
-
-      if (typeof tester !== 'function' || !tester(nextRetryUrl)) {
-        throw error;
-      }
-    }
-
+    // Domain check
     if (
       config.domain &&
       config.domain.length > 0 &&

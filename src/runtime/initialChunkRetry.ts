@@ -55,6 +55,7 @@ function validateTargetInfo(
   return { target, tagName, url };
 }
 
+
 function createElement(
   origin: HTMLElement,
   attributes: ScriptElementAttributes,
@@ -286,13 +287,44 @@ function load(config: NormalizedRuntimeRetryOptions, e: Event) {
   }
 }
 
+function findMatchingConfig(
+  url: string,
+  configs: NormalizedRuntimeRetryOptions | NormalizedRuntimeRetryOptions[],
+): NormalizedRuntimeRetryOptions | null {
+  // If single config, return it
+  if (!Array.isArray(configs)) {
+    return configs;
+  }
+
+  // Find the first matching config
+  for (const config of configs) {
+    // If no test, this config matches all
+    if (!config.test) {
+      return config;
+    }
+
+    // Test the URL against the config's test
+    let tester = config.test;
+    if (typeof tester === 'string') {
+      const regexp = new RegExp(tester);
+      tester = (str: string) => regexp.test(str);
+    }
+
+    if (typeof tester === 'function' && tester(url)) {
+      return config;
+    }
+  }
+
+  return null;
+}
+
 function registerInitialChunkRetry() {
   // init global variables shared with async chunk
   if (typeof window !== 'undefined' && !window.__RB_ASYNC_CHUNKS__) {
     window.__RB_ASYNC_CHUNKS__ = {};
   }
   try {
-    const config = __RETRY_OPTIONS__;
+    const configs = __RETRY_OPTIONS__;
     // Bind event in window
     if (
       typeof window !== 'undefined' &&
@@ -303,7 +335,20 @@ function registerInitialChunkRetry() {
         (e) => {
           if (e && e.target instanceof Element) {
             try {
-              retry(config, e);
+              // For multiple rules, we need to find the matching config first
+              if (Array.isArray(configs)) {
+                const target = e.target as HTMLElement;
+                const url = getRequestUrl(target);
+                if (url) {
+                  const config = findMatchingConfig(url, configs);
+                  if (config) {
+                    retry(config, e);
+                  }
+                }
+              } else {
+                // For single config, directly call retry
+                retry(configs, e);
+              }
             } catch (err) {
               console.error('retry error captured', err);
             }
@@ -316,7 +361,20 @@ function registerInitialChunkRetry() {
         (e) => {
           if (e && e.target instanceof Element) {
             try {
-              load(config, e);
+              // For multiple rules, we need to find the matching config first
+              if (Array.isArray(configs)) {
+                const target = e.target as HTMLElement;
+                const url = getRequestUrl(target);
+                if (url) {
+                  const config = findMatchingConfig(url, configs);
+                  if (config) {
+                    load(config, e);
+                  }
+                }
+              } else {
+                // For single config, directly call load
+                load(configs, e);
+              }
             } catch (err) {
               console.error('load error captured', err);
             }
