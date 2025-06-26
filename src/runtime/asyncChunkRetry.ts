@@ -97,7 +97,10 @@ function initRetry(chunkId: string, isCssAsyncChunk: boolean): Retry | null {
 
   const existRetryTimes = 0;
   const rule = findMatchingRule(originalSrcUrl, rules);
-  if (rule === null) {
+  if (
+    rule === null ||
+    rule.type.indexOf(isCssAsyncChunk ? 'link' : 'script') === -1
+  ) {
     return null;
   }
   const nextDomain = findCurrentDomain(originalSrcUrl, rule);

@@ -1,5 +1,11 @@
 import { findCurrentDomain } from './urlCalculate.js';
 
+/**
+ * match rule by
+ * 1. `test`
+ * 2. `domain`
+ * 3. `type` (not included in this function)
+ */
 export function findMatchingRule(
   url: string,
   rules: NormalizedRuntimeRetryOptions[],
