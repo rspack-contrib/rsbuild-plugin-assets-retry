@@ -3,14 +3,13 @@ export function findCurrentDomain(
   config: NormalizedRuntimeRetryOptions,
 ) {
   const domains = config.domain;
-  let domain = '';
   for (let i = 0; i < domains.length; i++) {
-    if (url.indexOf(domains[i]) !== -1) {
-      domain = domains[i];
-      break;
+    const domain = domains[i];
+    if (url.indexOf(domain) !== -1) {
+      return domain;
     }
   }
-  return domain || window.origin;
+  return window.origin;
 }
 
 export function findNextDomain(
@@ -20,7 +19,7 @@ export function findNextDomain(
   const domains = config.domain;
   const currentDomain = findCurrentDomain(url, config);
   const index = domains.indexOf(currentDomain);
-  return domains[(index + 1) % domains.length] || url;
+  return index === -1 ? currentDomain : domains[(index + 1) % domains.length];
 }
 
 const postfixRE = /[?#].*$/;

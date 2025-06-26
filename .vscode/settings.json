@@ -14,5 +14,6 @@
   },
   "[css]": {
     "editor.defaultFormatter": "biomejs.biome"
-  }
+  },
+  "cSpell.words": ["Rsbuild"]
 }
