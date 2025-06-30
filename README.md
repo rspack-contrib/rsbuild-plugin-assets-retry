@@ -63,7 +63,7 @@ type RuntimeRetryOptions = {
   type?: string[];
   domain?: string[];
   max?: number;
-  test?: string | ((url: string) => boolean);
+  test?: string | RegExp | ((url: string) => boolean);
   crossOrigin?: boolean | 'anonymous' | 'use-credentials';
   delay?: number | ((context: AssetsRetryHookContext) => number);
   onRetry?: (context: AssetsRetryHookContext) => void;

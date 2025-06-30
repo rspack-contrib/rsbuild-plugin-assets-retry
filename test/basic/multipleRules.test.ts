@@ -179,7 +179,7 @@ test('should use first matching rule when multiple rules match', async ({
     rules: [
       {
         // First rule - matches all .js files
-        test: '\\.js$',
+        test: /\.js$/,
         max: 3,
         delay: 100,
         onRetry(context) {
@@ -234,12 +234,12 @@ test('should support rules with different domains', async ({ page }) => {
     {
       rules: [
         {
-          test: '\\.css$',
+          test: /\.css$/,
           domain: [`localhost:${port}`, `localhost:${port + 1}`],
           max: 2,
         },
         {
-          test: '\\.js$',
+          test: /\.js$/,
           domain: [`localhost:${port}`, `localhost:${port + 2}`],
           max: 2,
         },
@@ -271,7 +271,7 @@ test('should fall back to no retry when no rule matches', async ({ page }) => {
     rules: [
       {
         // Only match CSS files
-        test: '\\.css$',
+        test: /\.css$/,
         max: 3,
       },
       {

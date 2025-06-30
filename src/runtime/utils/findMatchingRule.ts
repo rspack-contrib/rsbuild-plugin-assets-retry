@@ -12,27 +12,27 @@ export function findMatchingRule(
 ): NormalizedRuntimeRetryOptions | null {
   for (const rule of rules) {
     // Check test condition
-    let tester = rule.test;
-    if (tester) {
-      if (tester instanceof RegExp) {
-        if (!tester.test(url)) continue;
-      } else if (typeof tester === 'string') {
-        const regexp = new RegExp(tester);
-        tester = (str: string) => regexp.test(str);
-      }
-      if (typeof tester === 'function' && !tester(url)) {
-        continue;
-      }
+    const tester = rule.test;
+    let shouldMatch = true;
+    if (tester instanceof RegExp) {
+      shouldMatch = tester.test(url);
+    } else if (typeof tester === 'string') {
+      const regexp = new RegExp(tester);
+      shouldMatch = regexp.test(url);
+    } else if (typeof tester === 'function') {
+      shouldMatch = tester(url);
+    }
+
+    if (!shouldMatch) {
+      continue;
     }
 
     // Check domain condition
-    const domain = findCurrentDomain(url, rule);
-    if (
-      rule.domain &&
-      rule.domain.length > 0 &&
-      rule.domain.indexOf(domain) === -1
-    ) {
-      continue;
+    if (rule.domain && rule.domain.length > 0) {
+      const domain = findCurrentDomain(url, rule);
+      if (!rule.domain.includes(domain)) {
+        continue;
+      }
     }
 
     return rule;
