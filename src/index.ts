@@ -21,6 +21,9 @@ export type { PluginAssetsRetryOptions };
 
 export const PLUGIN_ASSETS_RETRY_NAME = 'rsbuild:assets-retry';
 
+// Unique identifier for filtering retry scripts in HTML templates
+export const ASSETS_RETRY_DATA_ATTRIBUTE = 'data-rsbuild-assets-retry';
+
 function getRuntimeOptions(
   userOptions: PluginAssetsRetryOptions,
   defaultCrossOrigin: boolean | 'anonymous' | 'use-credentials',
@@ -117,7 +120,9 @@ export const pluginAssetsRetry = (
 
         headTags.unshift({
           tag: 'script',
-          attrs: {},
+          attrs: {
+            [ASSETS_RETRY_DATA_ATTRIBUTE]: 'inline',
+          },
           children: code,
         });
 
@@ -133,6 +138,7 @@ export const pluginAssetsRetry = (
             tag: 'script',
             attrs: {
               src: url,
+              [ASSETS_RETRY_DATA_ATTRIBUTE]: 'external',
             },
           });
 

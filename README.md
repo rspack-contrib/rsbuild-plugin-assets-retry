@@ -473,6 +473,32 @@ If you want Assets Retry plugin to work on resources in custom templates, you ca
 </html>
 ```
 
+#### Identifying retry scripts in HTML templates
+
+The Assets Retry plugin adds a unique `data-rsbuild-assets-retry` attribute to retry scripts, allowing you to easily identify them in custom HTML templates.
+
+You can import the attribute constant:
+
+```js
+import { ASSETS_RETRY_DATA_ATTRIBUTE } from '@rsbuild/plugin-assets-retry';
+```
+
+The attribute values are:
+- `"inline"` for inline scripts (when `inlineScript: true`)
+- `"external"` for external scripts (when `inlineScript: false`)
+
+Example usage in HTML templates:
+
+```html
+<!-- Filter retry scripts -->
+<%= htmlWebpackPlugin.tags.headTags.filter(tag => tag.attributes['data-rsbuild-assets-retry'] === 'inline') %>
+
+<!-- Filter non-retry scripts -->
+<%= htmlWebpackPlugin.tags.headTags.filter(tag => !tag.attributes['data-rsbuild-assets-retry']) %>
+```
+
+This allows you to place retry scripts at the top of your HTML head for optimal loading order.
+
 ## License
 
 [MIT](./LICENSE).
