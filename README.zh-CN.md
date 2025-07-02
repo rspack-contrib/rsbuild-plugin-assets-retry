@@ -57,33 +57,43 @@ type AssetsRetryHookContext = {
   isAsyncChunk: boolean;
 };
 
-type AssetsRetryOptions = {
+type RuntimeRetryOptions = {
   type?: string[];
   domain?: string[];
   max?: number;
   test?: string | ((url: string) => boolean);
   crossOrigin?: boolean | 'anonymous' | 'use-credentials';
-  inlineScript?: boolean;
   delay?: number | ((context: AssetsRetryHookContext) => number);
   onRetry?: (context: AssetsRetryHookContext) => void;
   onSuccess?: (context: AssetsRetryHookContext) => void;
   onFail?: (context: AssetsRetryHookContext) => void;
 };
+
+type AssetsRetryOptions =
+  | ({
+      inlineScript?: boolean;
+      minify?: boolean;
+    } & RuntimeRetryOptions)
+  | {
+      inlineScript?: boolean;
+      minify?: boolean;
+      rules: RuntimeRetryOptions[];
+    };
 ```
 
 - **默认值：**
 
 ```ts
-const defaultOptions = {
+const defaultAssetsRetryOptions = {
+  max: 3,
   type: ['script', 'link', 'img'],
   domain: [],
-  max: 3,
-  test: '',
   crossOrigin: false,
+  test: '',
   delay: 0,
-  onRetry: () => {},
-  onSuccess: () => {},
-  onFail: () => {},
+  addQuery: false,
+  inlineScript: true,
+  minify: rsbuildConfig.mode === 'production',
 };
 ```
 
@@ -240,7 +250,7 @@ type AddQuery =
 
 当你想要自定义 query 时，可以传入一个函数，比如：
 
-- **示例：** 请求的所有资源都不含 query：
+- **示例 1：** 请求的所有资源都不含 query：
 
 ```js
 pluginAssetsRetry({
@@ -252,7 +262,7 @@ pluginAssetsRetry({
 });
 ```
 
-- **示例：** 当请求的某些资源中含有 query 时，可以使用 `originalQuery` 读取：
+- **示例 2：** 当请求的某些资源中含有 query 时，可以使用 `originalQuery` 读取：
 
 ```js
 pluginAssetsRetry({
@@ -320,6 +330,80 @@ pluginAssetsRetry({
 // 通过次数来计算延迟时间
 pluginAssetsRetry({
   delay: ctx => (ctx.times + 1) * 1000,
+});
+```
+
+### rules
+
+- **类型：** `RuntimeRetryOptions[]`
+- **默认值：** `undefined`
+
+配置多个重试规则，每个规则可以有不同的选项。规则会按顺序进行评估，第一个匹配的规则将用于重试逻辑。这在你对不同类型的资源或域名有不同的重试需求时非常有用。
+
+使用 `rules` 时，插件会：
+
+1. 按顺序通过 `test` `domain` `type` 检查每个规则
+
+2. 如果匹配到规则，会使用规则的配置进行重试
+
+3. 如果没有匹配到规则，则不会重试该资源
+
+每个规则支持与顶层配置相同的所有选项，包括 `type`、`domain`、`test`、`max`、`crossOrigin`、`delay`、`onRetry`、`onSuccess` 和 `onFail`。
+
+- **示例 1：** 不同 CDN 的不同重试策略：
+
+```js
+pluginAssetsRetry({
+  rules: [
+    {
+      // 主 CDN 的规则
+      test: /cdn1\.example\.com/,
+      domain: ['cdn1.example.com', 'cdn1-backup.example.com'],
+      max: 3,
+      delay: 1000,
+    },
+    {
+      // 次要 CDN 的规则，更多重试次数
+      test: /cdn2\.example\.com/,
+      domain: ['cdn2.example.com', 'cdn2-backup.example.com'],
+      max: 5,
+      delay: 500,
+    },
+    {
+      // 其他资源的默认规则
+      domain: ['default.example.com', 'default-backup.example.com'],
+      max: 2,
+    },
+  ],
+});
+```
+
+- **示例 2：** 不同资源类型的不同重试策略：
+
+```js
+pluginAssetsRetry({
+  rules: [
+    {
+      // 关键 JavaScript 文件获得更多重试次数
+      test: /\.js$/,
+      // 或者 type: ['script'],
+      max: 5,
+      delay: 1000,
+      onFail: ({ url }) => console.error(`关键 JS 失败: ${url}`),
+    },
+    {
+      // CSS 文件获得较少的重试次数
+      test: /\.css$/,
+      max: 2,
+      delay: 500,
+    },
+    {
+      // 图片获得最少的重试次数
+      test: /\.(png|jpg|gif|svg)$/,
+      max: 1,
+      delay: 0,
+    },
+  ],
 });
 ```
 

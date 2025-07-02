@@ -59,33 +59,43 @@ type AssetsRetryHookContext = {
   isAsyncChunk: boolean;
 };
 
-type AssetsRetryOptions = {
+type RuntimeRetryOptions = {
   type?: string[];
   domain?: string[];
   max?: number;
-  test?: string | ((url: string) => boolean);
+  test?: string | RegExp | ((url: string) => boolean);
   crossOrigin?: boolean | 'anonymous' | 'use-credentials';
-  inlineScript?: boolean;
   delay?: number | ((context: AssetsRetryHookContext) => number);
   onRetry?: (context: AssetsRetryHookContext) => void;
   onSuccess?: (context: AssetsRetryHookContext) => void;
   onFail?: (context: AssetsRetryHookContext) => void;
 };
+
+type AssetsRetryOptions =
+  | ({
+      inlineScript?: boolean;
+      minify?: boolean;
+    } & RuntimeRetryOptions)
+  | {
+      inlineScript?: boolean;
+      minify?: boolean;
+      rules: RuntimeRetryOptions[];
+    };
 ```
 
 - **Default:**
 
 ```ts
 const defaultAssetsRetryOptions = {
+  max: 3,
   type: ['script', 'link', 'img'],
   domain: [],
-  max: 3,
-  test: '',
   crossOrigin: false,
+  test: '',
   delay: 0,
-  onRetry: () => {},
-  onSuccess: () => {},
-  onFail: () => {},
+  addQuery: false,
+  inlineScript: true,
+  minify: rsbuildConfig.mode === 'production',
 };
 ```
 
@@ -242,7 +252,7 @@ When set to `true`, `retry=${times}` will be added to the query when requesting,
 
 When you want to customize query, you can pass a function, for example:
 
-- **Example:** All assets requested do not contain query:
+- **Example 1:** All assets requested do not contain query:
 
 ```js
 pluginAssetsRetry({
@@ -254,7 +264,7 @@ pluginAssetsRetry({
 });
 ```
 
-- **Example:** If there is a query in some of the requested assets, you can read it with `originalQuery`:
+- **Example 2:** If there is a query in some of the requested assets, you can read it with `originalQuery`:
 
 ```js
 pluginAssetsRetry({
@@ -322,6 +332,80 @@ Or pass a function that receives `AssetsRetryHookContext` and returns the delay 
 // Calculate delay based on retry attempts
 pluginAssetsRetry({
   delay: ctx => (ctx.times + 1) * 1000,
+});
+```
+
+### rules
+
+- **Type:** `RuntimeRetryOptions[]`
+- **Default:** `undefined`
+
+Configure multiple retry rules with different options. Each rule will be evaluated in order, and the first matching rule will be used for retry logic. This is useful when you have different retry requirements for different types of assets or domains.
+
+When using `rules`, the plugin will:
+
+1. Check each rule in order by `test` `domain` `type`
+
+2. If the rule is matched, the rule's configuration will be used to retry
+
+3. If no rule is matched, the resource will not be retried
+
+Each rule supports all the same options as the top-level configuration, including `type`, `domain`, `max`, `test`, `crossOrigin`, `delay`, `onRetry`, `onSuccess`, and `onFail`.
+
+- **Example 1:** Different retry strategies for different CDNs:
+
+```js
+pluginAssetsRetry({
+  rules: [
+    {
+      // Rule for primary CDN
+      test: /cdn1\.example\.com/,
+      domain: ['cdn1.example.com', 'cdn1-backup.example.com'],
+      max: 3,
+      delay: 1000,
+    },
+    {
+      // Rule for secondary CDN with more retries
+      test: /cdn2\.example\.com/,
+      domain: ['cdn2.example.com', 'cdn2-backup.example.com'],
+      max: 5,
+      delay: 500,
+    },
+    {
+      // Default rule for other assets
+      domain: ['default.example.com', 'default-backup.example.com'],
+      max: 2,
+    },
+  ],
+});
+```
+
+- **Example 2:** Different retry strategies for different asset types:
+
+```js
+pluginAssetsRetry({
+  rules: [
+    {
+      // Critical JavaScript files get more retries
+      type: ['script'],
+      // Or test: /\.js$/,
+      max: 5,
+      delay: 1000,
+      onFail: ({ url }) => console.error(`Critical JS failed: ${url}`),
+    },
+    {
+      // CSS files get fewer retries
+      test: /\.css$/,
+      max: 2,
+      delay: 500,
+    },
+    {
+      // Images get minimal retries
+      test: /\.(png|jpg|gif|svg)$/,
+      max: 1,
+      delay: 0,
+    },
+  ],
 });
 ```
 

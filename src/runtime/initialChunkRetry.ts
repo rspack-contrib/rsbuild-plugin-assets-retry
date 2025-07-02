@@ -1,18 +1,21 @@
 // rsbuild/runtime/initial-chunk-retry
 import { ERROR_PREFIX } from './constants.js';
+import { findMatchingRule } from './utils/findMatchingRule.js';
 import {
   findCurrentDomain,
   findNextDomain,
   getNextRetryUrl,
   getQueryFromUrl,
-} from './urlCalculate.js';
+} from './utils/urlCalculate.js';
 
 interface ScriptElementAttributes {
   url: string;
   times: number;
-  isAsync: boolean;
   originalQuery: string;
-  crossOrigin?: CrossOrigin | boolean;
+  ruleIndex: number;
+
+  crossOrigin?: CrossOrigin | boolean; // script only
+  isAsync: boolean; // script only
 }
 
 const TAG_TYPE: { [propName: string]: new () => HTMLElement } = {
@@ -35,24 +38,43 @@ function getRequestUrl(element: HTMLElement) {
 }
 
 function validateTargetInfo(
-  config: NormalizedRuntimeRetryOptions,
+  rules: NormalizedRuntimeRetryOptions[],
   e: Event,
-): { target: HTMLElement; tagName: string; url: string } | false {
+):
+  | {
+      target: HTMLElement;
+      tagName: string;
+      url: string;
+      rule: NormalizedRuntimeRetryOptions;
+      ruleIndex: number;
+    }
+  | false {
   const target: HTMLElement = e.target as HTMLElement;
   const tagName = target.tagName.toLocaleLowerCase();
-  const allowTags = config.type;
+
   const url = getRequestUrl(target);
+  if (!url) {
+    return false;
+  }
+
+  let ruleIndex = Number(target.dataset.rbRuleI || '-1');
+  const rule = rules[ruleIndex] || findMatchingRule(url, tagName, rules);
+  if (!rule) {
+    return false;
+  }
+  ruleIndex = rules.indexOf(rule);
+
+  const allowTags = rule.type;
   if (
     !tagName ||
     allowTags.indexOf(tagName) === -1 ||
     !TAG_TYPE[tagName] ||
-    !(target instanceof TAG_TYPE[tagName]) ||
-    !url
+    !(target instanceof TAG_TYPE[tagName])
   ) {
     return false;
   }
 
-  return { target, tagName, url };
+  return { target, tagName, url, rule, ruleIndex };
 }
 
 function createElement(
@@ -69,6 +91,10 @@ function createElement(
   const originalQueryAttr = attributes.originalQuery
     ? `data-rb-original-query="${attributes.originalQuery}"`
     : '';
+
+  const ruleIndexAttr =
+    attributes.ruleIndex >= 0 ? `data-rb-rule-i="${attributes.ruleIndex}"` : '';
+
   const isAsyncAttr = attributes.isAsync ? 'data-rb-async' : '';
 
   if (origin instanceof HTMLScriptElement) {
@@ -86,12 +112,15 @@ function createElement(
     if (attributes.originalQuery !== undefined) {
       script.dataset.rbOriginalQuery = attributes.originalQuery;
     }
+    if (attributes.ruleIndex >= 0) {
+      script.dataset.rbRuleI = String(attributes.ruleIndex);
+    }
 
     return {
       element: script,
       str:
         // biome-ignore lint/style/useTemplate: use "</" + "script>" instead of script tag to avoid syntax error when inlining in html
-        `<script src="${attributes.url}" ${crossOriginAttr} ${retryTimesAttr} ${isAsyncAttr} ${originalQueryAttr}>` +
+        `<script src="${attributes.url}" ${crossOriginAttr} ${retryTimesAttr} ${isAsyncAttr} ${ruleIndexAttr} ${originalQueryAttr}>` +
         '</' +
         'script>',
     };
@@ -120,7 +149,7 @@ function createElement(
         attributes.url
       }" ${crossOriginAttr} ${retryTimesAttr} ${
         link.as ? `as="${link.as}"` : ''
-      } ${originalQueryAttr}></link>`,
+      } ${ruleIndexAttr} ${originalQueryAttr}></link>`,
     };
   }
 }
@@ -153,13 +182,13 @@ function reloadElementResource(
   }
 }
 
-function retry(config: NormalizedRuntimeRetryOptions, e: Event) {
-  const targetInfo = validateTargetInfo(config, e);
+function retry(rules: NormalizedRuntimeRetryOptions[], e: Event) {
+  const targetInfo = validateTargetInfo(rules, e);
   if (targetInfo === false) {
     return;
   }
 
-  const { target, tagName, url } = targetInfo;
+  const { target, tagName, url, rule, ruleIndex } = targetInfo;
 
   // If the requested failed chunk is async chunk，skip it, because async chunk will be retried by asyncChunkRetry runtime
   if (
@@ -171,33 +200,12 @@ function retry(config: NormalizedRuntimeRetryOptions, e: Event) {
     return;
   }
 
-  // Filter by config.test and config.domain
-  let tester = config.test;
-  if (tester) {
-    if (typeof tester === 'string') {
-      const regexp = new RegExp(tester);
-      tester = (str: string) => regexp.test(str);
-    }
-
-    if (typeof tester !== 'function' || !tester(url)) {
-      return;
-    }
-  }
-
-  const domain = findCurrentDomain(url, config);
-
-  if (
-    config.domain &&
-    config.domain.length > 0 &&
-    config.domain.indexOf(domain) === -1
-  ) {
-    return;
-  }
+  const domain = findCurrentDomain(url, rule);
 
   // If the retry times has exceeded the maximum, fail
   const existRetryTimes = Number(target.dataset.rbRetryTimes) || 0;
-  if (existRetryTimes === config.max!) {
-    if (typeof config.onFail === 'function') {
+  if (existRetryTimes === rule.max) {
+    if (typeof rule.onFail === 'function') {
       const context: AssetsRetryHookContext = {
         times: existRetryTimes,
         domain,
@@ -205,13 +213,13 @@ function retry(config: NormalizedRuntimeRetryOptions, e: Event) {
         tagName,
         isAsyncChunk: false,
       };
-      config.onFail(context);
+      rule.onFail(context);
     }
     return;
   }
 
   // Then, we will start to retry
-  const nextDomain = findNextDomain(domain, config);
+  const nextDomain = findNextDomain(domain, rule);
 
   // if the initial request is "/static/js/async/src_Hello_tsx.js?q=1", retry url would be "/static/js/async/src_Hello_tsx.js?q=1&retry=1"
   const originalQuery = target.dataset.rbOriginalQuery ?? getQueryFromUrl(url);
@@ -228,12 +236,13 @@ function retry(config: NormalizedRuntimeRetryOptions, e: Event) {
       nextDomain,
       existRetryTimes,
       originalQuery,
-      config,
+      rule,
     ),
     times: existRetryTimes + 1,
-    crossOrigin: config.crossOrigin,
-    isAsync,
     originalQuery,
+    ruleIndex,
+    crossOrigin: rule.crossOrigin,
+    isAsync,
   };
 
   const element = createElement(target, attributes)!;
@@ -246,13 +255,13 @@ function retry(config: NormalizedRuntimeRetryOptions, e: Event) {
     isAsyncChunk: false,
   };
 
-  if (typeof config.onRetry === 'function') {
-    config.onRetry(context);
+  if (typeof rule.onRetry === 'function') {
+    rule.onRetry(context);
   }
 
   // Delay retry
   const delayValue =
-    typeof config.delay === 'function' ? config.delay(context) : config.delay;
+    typeof rule.delay === 'function' ? rule.delay(context) : rule.delay;
 
   if (delayValue > 0) {
     setTimeout(() => {
@@ -263,18 +272,18 @@ function retry(config: NormalizedRuntimeRetryOptions, e: Event) {
   }
 }
 
-function load(config: NormalizedRuntimeRetryOptions, e: Event) {
+function load(config: NormalizedRuntimeRetryOptions[], e: Event) {
   const targetInfo = validateTargetInfo(config, e);
   if (targetInfo === false) {
     return;
   }
-  const { target, tagName, url } = targetInfo;
-  const domain = findCurrentDomain(url, config);
+  const { target, tagName, url, rule } = targetInfo;
+  const domain = findCurrentDomain(url, rule);
   const retryTimes = Number(target.dataset.rbRetryTimes) || 0;
   if (retryTimes === 0) {
     return;
   }
-  if (typeof config.onSuccess === 'function') {
+  if (typeof rule.onSuccess === 'function') {
     const context: AssetsRetryHookContext = {
       times: retryTimes,
       domain,
@@ -282,7 +291,7 @@ function load(config: NormalizedRuntimeRetryOptions, e: Event) {
       tagName,
       isAsyncChunk: false,
     };
-    config.onSuccess(context);
+    rule.onSuccess(context);
   }
 }
 

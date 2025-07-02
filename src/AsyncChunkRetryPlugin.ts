@@ -50,10 +50,10 @@ class AsyncChunkRetryPlugin implements Rspack.RspackPluginInstance {
   readonly name = 'ASYNC_CHUNK_RETRY_PLUGIN';
   readonly isRspack: boolean;
   readonly minify: boolean;
-  readonly runtimeOptions: NormalizedRuntimeRetryOptions;
+  readonly runtimeOptions: NormalizedRuntimeRetryOptions[];
 
   constructor(
-    options: NormalizedRuntimeRetryOptions,
+    options: NormalizedRuntimeRetryOptions[],
     isRspack: boolean,
     minify: boolean,
   ) {

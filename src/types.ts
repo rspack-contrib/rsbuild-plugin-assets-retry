@@ -55,7 +55,7 @@ export type RuntimeRetryOptionsWithoutDefaultValue = {
   /**
    * The test function of the asset to be retried.
    */
-  test?: string | ((url: string) => boolean);
+  test?: string | RegExp | ((url: string) => boolean);
   /**
    * The callback function when the asset is failed to be retried.
    */
@@ -90,5 +90,10 @@ export type CompileTimeRetryOptions = {
   minify?: boolean;
 };
 
-export type PluginAssetsRetryOptions = RuntimeRetryOptions &
-  CompileTimeRetryOptions;
+export type PluginAssetsRetryOptions =
+  // single rule
+  | (RuntimeRetryOptions & CompileTimeRetryOptions)
+  // multiple rules
+  | ({
+      rules: RuntimeRetryOptions[];
+    } & CompileTimeRetryOptions);
