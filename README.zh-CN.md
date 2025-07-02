@@ -489,7 +489,7 @@ import { ASSETS_RETRY_DATA_ATTRIBUTE } from '@rsbuild/plugin-assets-retry';
 
 ```html
 <!-- 筛选重试脚本 -->
-<% htmlWebpackPlugin.tags.headTags.filter(tag => tag.attributes['data-rsbuild-assets-retry'] === 'inline') %>
+<%= htmlWebpackPlugin.tags.headTags.filter(tag => tag.attributes['data-rsbuild-assets-retry'] === 'inline') %>
 
 <!-- 筛选非重试脚本 -->
 <%= htmlWebpackPlugin.tags.headTags.filter(tag => !tag.attributes['data-rsbuild-assets-retry']) %>

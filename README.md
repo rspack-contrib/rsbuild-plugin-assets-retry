@@ -491,7 +491,7 @@ Example usage in HTML templates:
 
 ```html
 <!-- Filter retry scripts -->
-<% htmlWebpackPlugin.tags.headTags.filter(tag => tag.attributes['data-rsbuild-assets-retry'] === 'inline') %>
+<%= htmlWebpackPlugin.tags.headTags.filter(tag => tag.attributes['data-rsbuild-assets-retry'] === 'inline') %>
 
 <!-- Filter non-retry scripts -->
 <%= htmlWebpackPlugin.tags.headTags.filter(tag => !tag.attributes['data-rsbuild-assets-retry']) %>

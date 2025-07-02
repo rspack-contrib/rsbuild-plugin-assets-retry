@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { createRsbuild } from '@rsbuild/core';
-import { pluginAssetsRetry, ASSETS_RETRY_DATA_ATTRIBUTE } from '../../dist';
+import { ASSETS_RETRY_DATA_ATTRIBUTE, pluginAssetsRetry } from '../../dist';
 
 test('should add data attribute to inline retry script', async ({ page }) => {
   const rsbuild = await createRsbuild({
@@ -19,7 +19,9 @@ test('should add data attribute to inline retry script', async ({ page }) => {
   await page.goto(urls[0]);
 
   // 检查内联脚本是否有正确的 data 属性
-  const inlineScript = await page.locator(`script[${ASSETS_RETRY_DATA_ATTRIBUTE}="inline"]`);
+  const inlineScript = await page.locator(
+    `script[${ASSETS_RETRY_DATA_ATTRIBUTE}="inline"]`,
+  );
   expect(await inlineScript.count()).toBe(1);
 
   // 验证脚本内容包含重试逻辑
@@ -46,7 +48,9 @@ test('should add data attribute to external retry script', async ({ page }) => {
   await page.goto(urls[0]);
 
   // 检查外部脚本是否有正确的 data 属性
-  const externalScript = await page.locator(`script[${ASSETS_RETRY_DATA_ATTRIBUTE}="external"]`);
+  const externalScript = await page.locator(
+    `script[${ASSETS_RETRY_DATA_ATTRIBUTE}="external"]`,
+  );
   expect(await externalScript.count()).toBe(1);
 
   // 验证脚本有 src 属性
@@ -56,7 +60,9 @@ test('should add data attribute to external retry script', async ({ page }) => {
   await server.close();
 });
 
-test('should be able to filter retry script in HTML template', async ({ page }) => {
+test('should be able to filter retry script in HTML template', async ({
+  page,
+}) => {
   const rsbuild = await createRsbuild({
     cwd: import.meta.dirname,
     rsbuildConfig: {
@@ -75,7 +81,9 @@ test('should be able to filter retry script in HTML template', async ({ page }) 
   // 模拟在 HTML 模板中使用 htmlWebpackPlugin.tags.headTags.filter 的场景
   // 验证可以通过 data 属性筛选出重试脚本
   const allScripts = await page.locator('script');
-  const retryScripts = await page.locator(`script[${ASSETS_RETRY_DATA_ATTRIBUTE}]`);
+  const retryScripts = await page.locator(
+    `script[${ASSETS_RETRY_DATA_ATTRIBUTE}]`,
+  );
 
   const allScriptsCount = await allScripts.count();
   const retryScriptsCount = await retryScripts.count();

@@ -21,7 +21,7 @@ export type { PluginAssetsRetryOptions };
 
 export const PLUGIN_ASSETS_RETRY_NAME = 'rsbuild:assets-retry';
 
-// 唯一标识符，用于在 HTML 模板中筛选重试脚本
+// Unique identifier for filtering retry scripts in HTML templates
 export const ASSETS_RETRY_DATA_ATTRIBUTE = 'data-rsbuild-assets-retry';
 
 function getRuntimeOptions(
