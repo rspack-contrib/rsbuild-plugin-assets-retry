@@ -272,8 +272,8 @@ function retry(rules: NormalizedRuntimeRetryOptions[], e: Event) {
   }
 }
 
-function load(config: NormalizedRuntimeRetryOptions[], e: Event) {
-  const targetInfo = validateTargetInfo(config, e);
+function load(rules: NormalizedRuntimeRetryOptions[], e: Event) {
+  const targetInfo = validateTargetInfo(rules, e);
   if (targetInfo === false) {
     return;
   }

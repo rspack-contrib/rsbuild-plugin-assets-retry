@@ -23,6 +23,10 @@ const pluginGenerateMinified: (filename: string) => RsbuildPlugin = (
         ecma: 5,
         // allows SWC to mangle function names
         module: true,
+        compress: {
+          passes: 5,
+          unsafe: true,
+        },
       });
 
       logger.success(
