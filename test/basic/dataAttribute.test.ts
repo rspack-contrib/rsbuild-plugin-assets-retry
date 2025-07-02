@@ -18,13 +18,13 @@ test('should add data attribute to inline retry script', async ({ page }) => {
 
   await page.goto(urls[0]);
 
-  // 检查内联脚本是否有正确的 data 属性
+  // Check if inline script has correct data attribute
   const inlineScript = await page.locator(
     `script[${ASSETS_RETRY_DATA_ATTRIBUTE}="inline"]`,
   );
   expect(await inlineScript.count()).toBe(1);
 
-  // 验证脚本内容包含重试逻辑
+  // Verify script content contains retry logic
   const scriptContent = await inlineScript.innerHTML();
   expect(scriptContent).toContain('document.addEventListener');
 
@@ -47,13 +47,13 @@ test('should add data attribute to external retry script', async ({ page }) => {
 
   await page.goto(urls[0]);
 
-  // 检查外部脚本是否有正确的 data 属性
+  // Check if external script has correct data attribute
   const externalScript = await page.locator(
     `script[${ASSETS_RETRY_DATA_ATTRIBUTE}="external"]`,
   );
   expect(await externalScript.count()).toBe(1);
 
-  // 验证脚本有 src 属性
+  // Verify script has src attribute
   const src = await externalScript.getAttribute('src');
   expect(src).toContain('assets-retry');
 
@@ -78,8 +78,8 @@ test('should be able to filter retry script in HTML template', async ({
 
   await page.goto(urls[0]);
 
-  // 模拟在 HTML 模板中使用 htmlWebpackPlugin.tags.headTags.filter 的场景
-  // 验证可以通过 data 属性筛选出重试脚本
+  // Simulate using htmlWebpackPlugin.tags.headTags.filter in HTML template
+  // Verify that retry scripts can be filtered by data attribute
   const allScripts = await page.locator('script');
   const retryScripts = await page.locator(
     `script[${ASSETS_RETRY_DATA_ATTRIBUTE}]`,
@@ -88,7 +88,7 @@ test('should be able to filter retry script in HTML template', async ({
   const allScriptsCount = await allScripts.count();
   const retryScriptsCount = await retryScripts.count();
 
-  // 应该有至少一个脚本，且重试脚本应该是其中的一个
+  // Should have at least one script, and retry script should be one of them
   expect(allScriptsCount).toBeGreaterThan(0);
   expect(retryScriptsCount).toBe(1);
 
