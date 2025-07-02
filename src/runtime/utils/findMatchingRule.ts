@@ -11,8 +11,9 @@ export function findMatchingRule(
   type: string,
   rules: NormalizedRuntimeRetryOptions[],
 ): NormalizedRuntimeRetryOptions | null {
-  for (const rule of rules) {
+  for (let i = 0; i < rules.length; i++) {
     // Check test condition
+    const rule = rules[i];
     const tester = rule.test;
     let shouldMatch = true;
     if (tester instanceof RegExp) {
