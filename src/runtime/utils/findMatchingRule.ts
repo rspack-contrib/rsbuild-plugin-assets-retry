@@ -4,10 +4,11 @@ import { findCurrentDomain } from './urlCalculate.js';
  * match rule by
  * 1. `test`
  * 2. `domain`
- * 3. `type` (not included in this function)
+ * 3. `type`
  */
 export function findMatchingRule(
   url: string,
+  type: string,
   rules: NormalizedRuntimeRetryOptions[],
 ): NormalizedRuntimeRetryOptions | null {
   for (const rule of rules) {
@@ -23,18 +24,20 @@ export function findMatchingRule(
       shouldMatch = tester(url);
     }
 
-    if (!shouldMatch) {
-      continue;
-    }
-
-    // Check domain condition
     if (rule.domain && rule.domain.length > 0) {
       const domain = findCurrentDomain(url, rule);
       if (!rule.domain.includes(domain)) {
-        continue;
+        shouldMatch = false;
       }
     }
 
+    if (rule.type && rule.type.length > 0) {
+      if (!rule.type.includes(type)) shouldMatch = false;
+    }
+
+    if (!shouldMatch) {
+      continue;
+    }
     return rule;
   }
 

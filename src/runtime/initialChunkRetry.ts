@@ -58,7 +58,7 @@ function validateTargetInfo(
   }
 
   let ruleIndex = Number(target.dataset.rbRuleI || '-1');
-  const rule = rules[ruleIndex] || findMatchingRule(url, rules);
+  const rule = rules[ruleIndex] || findMatchingRule(url, tagName, rules);
   if (!rule) {
     return false;
   }

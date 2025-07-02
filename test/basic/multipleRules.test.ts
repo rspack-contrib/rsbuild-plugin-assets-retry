@@ -116,6 +116,10 @@ test('should match rules by test function', async ({ page }) => {
   const rsbuild = await createRsbuildWithMiddleware(blockedMiddleware, {
     rules: [
       {
+        // this rule should not match
+        test: () => false,
+      },
+      {
         // Use function test for async chunks
         test: (url) => url.includes('async/'),
         max: 3,
@@ -133,10 +137,8 @@ test('should match rules by test function', async ({ page }) => {
     ],
   });
 
-  const { onRetryContextList, onFailContextList } = await proxyPageConsole(
-    page,
-    rsbuild.port,
-  );
+  const { onRetryContextList, onFailContextList, onSuccessContextList } =
+    await proxyPageConsole(page, rsbuild.port);
 
   await gotoPage(page, rsbuild);
   await delay();
@@ -155,8 +157,45 @@ test('should match rules by test function', async ({ page }) => {
   expect(blockedResponseCount).toBe(4); // 1 initial + 3 retries
 
   // Check contexts
-  expect(onRetryContextList.length).toBe(3);
-  expect(onFailContextList.length).toBe(1);
+  expect({
+    onRetryContextList,
+    onFailContextList,
+    onSuccessContextList,
+  }).toMatchObject({
+    onFailContextList: [
+      {
+        domain: '<ORIGIN>',
+        isAsyncChunk: true,
+        tagName: 'script',
+        times: 3,
+        url: '<ORIGIN>/static/js/async/src_AsyncCompTest_tsx.js',
+      },
+    ],
+    onRetryContextList: [
+      {
+        domain: '<ORIGIN>',
+        isAsyncChunk: true,
+        tagName: 'script',
+        times: 0,
+        url: '<ORIGIN>/static/js/async/src_AsyncCompTest_tsx.js',
+      },
+      {
+        domain: '<ORIGIN>',
+        isAsyncChunk: true,
+        tagName: 'script',
+        times: 1,
+        url: '<ORIGIN>/static/js/async/src_AsyncCompTest_tsx.js',
+      },
+      {
+        domain: '<ORIGIN>',
+        isAsyncChunk: true,
+        tagName: 'script',
+        times: 2,
+        url: '<ORIGIN>/static/js/async/src_AsyncCompTest_tsx.js',
+      },
+    ],
+    onSuccessContextList: [],
+  });
 
   await rsbuild.server.close();
   restore();
@@ -177,6 +216,14 @@ test('should use first matching rule when multiple rules match', async ({
 
   const rsbuild = await createRsbuildWithMiddleware(blockedMiddleware, {
     rules: [
+      {
+        type: ['link'],
+        max: 1,
+      },
+      {
+        test: /\.css$/,
+        max: 1,
+      },
       {
         // First rule - matches all .js files
         test: /\.js$/,
@@ -208,9 +255,45 @@ test('should use first matching rule when multiple rules match', async ({
   expect(blockedResponseCount).toBe(3);
 
   // Check callbacks were triggered
-  expect(onRetryContextList.length).toBe(3);
-  expect(onSuccessContextList.length).toBe(1);
-  expect(onFailContextList.length).toBe(0);
+  expect({
+    onRetryContextList,
+    onSuccessContextList,
+    onFailContextList,
+  }).toMatchObject({
+    onFailContextList: [],
+    onRetryContextList: [
+      {
+        domain: '<ORIGIN>',
+        isAsyncChunk: false,
+        tagName: 'script',
+        times: 0,
+        url: '<ORIGIN>/static/js/index.js',
+      },
+      {
+        domain: '<ORIGIN>',
+        isAsyncChunk: false,
+        tagName: 'script',
+        times: 1,
+        url: '<ORIGIN>/static/js/index.js',
+      },
+      {
+        domain: '<ORIGIN>',
+        isAsyncChunk: false,
+        tagName: 'script',
+        times: 2,
+        url: '<ORIGIN>/static/js/index.js',
+      },
+    ],
+    onSuccessContextList: [
+      {
+        domain: '<ORIGIN>',
+        isAsyncChunk: false,
+        tagName: 'script',
+        times: 3,
+        url: '<ORIGIN>/static/js/index.js',
+      },
+    ],
+  });
 
   await rsbuild.server.close();
   restore();
@@ -225,7 +308,7 @@ test('should support rules with different domains', async ({ page }) => {
   const port = 15000 + Math.floor(Math.random() * 10000);
 
   const blockedMiddleware = createBlockMiddleware({
-    blockNum: 1,
+    blockNum: 4,
     urlPrefix: '/static/',
   });
 
@@ -236,12 +319,12 @@ test('should support rules with different domains', async ({ page }) => {
         {
           test: /\.css$/,
           domain: [`localhost:${port}`, `localhost:${port + 1}`],
-          max: 2,
+          max: 4,
         },
         {
           test: /\.js$/,
           domain: [`localhost:${port}`, `localhost:${port + 2}`],
-          max: 2,
+          max: 4,
         },
       ],
     },

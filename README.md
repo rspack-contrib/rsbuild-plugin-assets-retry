@@ -388,7 +388,7 @@ pluginAssetsRetry({
     {
       // Critical JavaScript files get more retries
       type: ['script'],
-      // 或者 test: /\.js$/,
+      // Or test: /\.js$/,
       max: 5,
       delay: 1000,
       onFail: ({ url }) => console.error(`Critical JS failed: ${url}`),
