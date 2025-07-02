@@ -46,6 +46,7 @@ function validateTargetInfo(
       tagName: string;
       url: string;
       rule: NormalizedRuntimeRetryOptions;
+      ruleIndex: number;
     }
   | false {
   const target: HTMLElement = e.target as HTMLElement;
@@ -56,11 +57,12 @@ function validateTargetInfo(
     return false;
   }
 
-  const ruleIndex = Number(target.dataset.rbRuleI);
-  const rule = rules[ruleIndex] ?? findMatchingRule(url, rules);
+  let ruleIndex = Number(target.dataset.rbRuleI || '-1');
+  const rule = rules[ruleIndex] || findMatchingRule(url, rules);
   if (!rule) {
     return false;
   }
+  ruleIndex = rules.indexOf(rule);
 
   const allowTags = rule.type;
   if (
@@ -72,7 +74,7 @@ function validateTargetInfo(
     return false;
   }
 
-  return { target, tagName, url, rule };
+  return { target, tagName, url, rule, ruleIndex };
 }
 
 function createElement(
@@ -91,7 +93,7 @@ function createElement(
     : '';
 
   const ruleIndexAttr =
-    attributes.ruleIndex > 0 ? `data-rb-rule-i="${attributes.ruleIndex}"` : '';
+    attributes.ruleIndex >= 0 ? `data-rb-rule-i="${attributes.ruleIndex}"` : '';
 
   const isAsyncAttr = attributes.isAsync ? 'data-rb-async' : '';
 
@@ -110,7 +112,7 @@ function createElement(
     if (attributes.originalQuery !== undefined) {
       script.dataset.rbOriginalQuery = attributes.originalQuery;
     }
-    if (attributes.ruleIndex > 0) {
+    if (attributes.ruleIndex >= 0) {
       script.dataset.rbRuleI = String(attributes.ruleIndex);
     }
 
@@ -186,7 +188,7 @@ function retry(rules: NormalizedRuntimeRetryOptions[], e: Event) {
     return;
   }
 
-  const { target, tagName, url, rule } = targetInfo;
+  const { target, tagName, url, rule, ruleIndex } = targetInfo;
 
   // If the requested failed chunk is async chunk，skip it, because async chunk will be retried by asyncChunkRetry runtime
   if (
@@ -221,8 +223,6 @@ function retry(rules: NormalizedRuntimeRetryOptions[], e: Event) {
 
   // if the initial request is "/static/js/async/src_Hello_tsx.js?q=1", retry url would be "/static/js/async/src_Hello_tsx.js?q=1&retry=1"
   const originalQuery = target.dataset.rbOriginalQuery ?? getQueryFromUrl(url);
-
-  const ruleIndex = Number(target.dataset.rbRuleI) || 0;
 
   const isAsync =
     Boolean(target.dataset.rbAsync) ||
