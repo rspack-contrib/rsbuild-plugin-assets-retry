@@ -489,12 +489,10 @@ import { ASSETS_RETRY_DATA_ATTRIBUTE } from '@rsbuild/plugin-assets-retry';
 
 ```html
 <!-- 筛选重试脚本 -->
-<%= htmlWebpackPlugin.tags.headTags.filter(tag =>
-tag.attributes['data-rsbuild-assets-retry'] === 'inline') %>
+<%= htmlWebpackPlugin.tags.headTags.filter(tag => tag.attributes['data-rsbuild-assets-retry'] === 'inline') %>
 
 <!-- 筛选非重试脚本 -->
-<%= htmlWebpackPlugin.tags.headTags.filter(tag =>
-!tag.attributes['data-rsbuild-assets-retry']) %>
+<%= htmlWebpackPlugin.tags.headTags.filter(tag => !tag.attributes['data-rsbuild-assets-retry']) %>
 ```
 
 这允许您将重试脚本放置在 HTML 头部的顶部以获得最佳的加载顺序。
