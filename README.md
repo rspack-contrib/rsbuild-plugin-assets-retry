@@ -90,8 +90,7 @@ const defaultAssetsRetryOptions = {
   max: 3,
   type: ['script', 'link', 'img'],
   domain: [],
-  crossOrigin: false,
-  test: '',
+  crossOrigin: rsbuildConfig.html.crossorigin,
   delay: 0,
   addQuery: false,
   inlineScript: true,
@@ -484,6 +483,7 @@ import { ASSETS_RETRY_DATA_ATTRIBUTE } from '@rsbuild/plugin-assets-retry';
 ```
 
 The attribute values are:
+
 - `"inline"` for inline scripts (when `inlineScript: true`)
 - `"external"` for external scripts (when `inlineScript: false`)
 
@@ -491,10 +491,12 @@ Example usage in HTML templates:
 
 ```html
 <!-- Filter retry scripts -->
-<%= htmlWebpackPlugin.tags.headTags.filter(tag => tag.attributes['data-rsbuild-assets-retry'] === 'inline') %>
+<%= htmlWebpackPlugin.tags.headTags.filter(tag =>
+tag.attributes['data-rsbuild-assets-retry'] === 'inline') %>
 
 <!-- Filter non-retry scripts -->
-<%= htmlWebpackPlugin.tags.headTags.filter(tag => !tag.attributes['data-rsbuild-assets-retry']) %>
+<%= htmlWebpackPlugin.tags.headTags.filter(tag =>
+!tag.attributes['data-rsbuild-assets-retry']) %>
 ```
 
 This allows you to place retry scripts at the top of your HTML head for optimal loading order.

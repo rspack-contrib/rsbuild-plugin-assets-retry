@@ -88,8 +88,7 @@ const defaultAssetsRetryOptions = {
   max: 3,
   type: ['script', 'link', 'img'],
   domain: [],
-  crossOrigin: false,
-  test: '',
+  crossOrigin: rsbuildConfig.html.crossorigin,
   delay: 0,
   addQuery: false,
   inlineScript: true,
@@ -482,6 +481,7 @@ import { ASSETS_RETRY_DATA_ATTRIBUTE } from '@rsbuild/plugin-assets-retry';
 ```
 
 属性值包括：
+
 - `"inline"` 用于内联脚本（当 `inlineScript: true` 时）
 - `"external"` 用于外部脚本（当 `inlineScript: false` 时）
 
@@ -489,10 +489,12 @@ import { ASSETS_RETRY_DATA_ATTRIBUTE } from '@rsbuild/plugin-assets-retry';
 
 ```html
 <!-- 筛选重试脚本 -->
-<%= htmlWebpackPlugin.tags.headTags.filter(tag => tag.attributes['data-rsbuild-assets-retry'] === 'inline') %>
+<%= htmlWebpackPlugin.tags.headTags.filter(tag =>
+tag.attributes['data-rsbuild-assets-retry'] === 'inline') %>
 
 <!-- 筛选非重试脚本 -->
-<%= htmlWebpackPlugin.tags.headTags.filter(tag => !tag.attributes['data-rsbuild-assets-retry']) %>
+<%= htmlWebpackPlugin.tags.headTags.filter(tag =>
+!tag.attributes['data-rsbuild-assets-retry']) %>
 ```
 
 这允许您将重试脚本放置在 HTML 头部的顶部以获得最佳的加载顺序。
