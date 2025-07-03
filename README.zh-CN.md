@@ -88,8 +88,7 @@ const defaultAssetsRetryOptions = {
   max: 3,
   type: ['script', 'link', 'img'],
   domain: [],
-  crossOrigin: false,
-  test: '',
+  crossOrigin: rsbuildConfig.html.crossorigin,
   delay: 0,
   addQuery: false,
   inlineScript: true,
@@ -482,6 +481,7 @@ import { ASSETS_RETRY_DATA_ATTRIBUTE } from '@rsbuild/plugin-assets-retry';
 ```
 
 属性值包括：
+
 - `"inline"` 用于内联脚本（当 `inlineScript: true` 时）
 - `"external"` 用于外部脚本（当 `inlineScript: false` 时）
 

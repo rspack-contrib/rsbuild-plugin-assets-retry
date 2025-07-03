@@ -21,6 +21,7 @@ export type RuntimeRetryOptionsWithDefaultValue = {
   type?: string[];
   /**
    * Specifies the retry domain when assets fail to load.
+   * @default []
    */
   domain?: string[];
   /**

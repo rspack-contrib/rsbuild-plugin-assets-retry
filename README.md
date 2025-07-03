@@ -90,8 +90,7 @@ const defaultAssetsRetryOptions = {
   max: 3,
   type: ['script', 'link', 'img'],
   domain: [],
-  crossOrigin: false,
-  test: '',
+  crossOrigin: rsbuildConfig.html.crossorigin,
   delay: 0,
   addQuery: false,
   inlineScript: true,
@@ -484,6 +483,7 @@ import { ASSETS_RETRY_DATA_ATTRIBUTE } from '@rsbuild/plugin-assets-retry';
 ```
 
 The attribute values are:
+
 - `"inline"` for inline scripts (when `inlineScript: true`)
 - `"external"` for external scripts (when `inlineScript: false`)
 
