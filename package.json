@@ -1,6 +1,6 @@
 {
   "name": "@rsbuild/plugin-assets-retry",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "repository": "https://github.com/rspack-contrib/rsbuild-plugin-assets-retry",
   "license": "MIT",
   "type": "module",
