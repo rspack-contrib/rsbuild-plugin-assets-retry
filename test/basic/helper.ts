@@ -131,6 +131,8 @@ export async function createRsbuildWithMiddleware(
       dev: {
         hmr: false,
         liveReload: false,
+        // TODO: make e2e work with lazy compilation
+        lazyCompilation: false,
         setupMiddlewares: [
           (middlewares, _server) => {
             const addMiddleWares = Array.isArray(middleware)
