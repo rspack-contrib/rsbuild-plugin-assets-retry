@@ -166,7 +166,7 @@ function retry(rules: NormalizedRuntimeRetryOptions[], e: Event) {
   // If the requested failed chunk is async chunk，skip it, because async chunk will be retried by asyncChunkRetry runtime
   if (
     typeof window !== 'undefined' &&
-    Object.keys(window.__RB_ASYNC_CHUNKS__ || {}).some(chunkName => {
+    Object.keys(window.__RB_ASYNC_CHUNKS__ || {}).some((chunkName) => {
       return url.indexOf(chunkName) !== -1;
     })
   ) {
@@ -282,7 +282,7 @@ function registerInitialChunkRetry() {
     ) {
       document.addEventListener(
         'error',
-        e => {
+        (e) => {
           if (e && e.target instanceof Element) {
             try {
               retry(config, e);
@@ -295,7 +295,7 @@ function registerInitialChunkRetry() {
       );
       document.addEventListener(
         'load',
-        e => {
+        (e) => {
           if (e && e.target instanceof Element) {
             try {
               load(config, e);
