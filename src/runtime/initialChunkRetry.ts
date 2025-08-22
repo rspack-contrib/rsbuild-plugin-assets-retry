@@ -80,22 +80,9 @@ function validateTargetInfo(
 function createElement(
   origin: HTMLElement,
   attributes: ScriptElementAttributes,
-): { element: HTMLElement; str: string } | undefined {
+): HTMLElement | undefined {
   const crossOrigin =
     attributes.crossOrigin === true ? 'anonymous' : attributes.crossOrigin;
-  const crossOriginAttr = crossOrigin ? `crossorigin="${crossOrigin}"` : '';
-  const retryTimesAttr = attributes.times
-    ? `data-rb-retry-times="${attributes.times}"`
-    : '';
-
-  const originalQueryAttr = attributes.originalQuery
-    ? `data-rb-original-query="${attributes.originalQuery}"`
-    : '';
-
-  const ruleIndexAttr =
-    attributes.ruleIndex >= 0 ? `data-rb-rule-i="${attributes.ruleIndex}"` : '';
-
-  const isAsyncAttr = attributes.isAsync ? 'data-rb-async' : '';
 
   if (origin instanceof HTMLScriptElement) {
     const script = document.createElement('script');
@@ -116,14 +103,7 @@ function createElement(
       script.dataset.rbRuleI = String(attributes.ruleIndex);
     }
 
-    return {
-      element: script,
-      str:
-        // biome-ignore lint/style/useTemplate: use "</" + "script>" instead of script tag to avoid syntax error when inlining in html
-        `<script src="${attributes.url}" ${crossOriginAttr} ${retryTimesAttr} ${isAsyncAttr} ${ruleIndexAttr} ${originalQueryAttr}>` +
-        '</' +
-        'script>',
-    };
+    return script;
   }
   if (origin instanceof HTMLLinkElement) {
     const link = document.createElement('link');
@@ -143,25 +123,18 @@ function createElement(
     if (attributes.originalQuery !== undefined) {
       link.dataset.rbOriginalQuery = attributes.originalQuery;
     }
-    return {
-      element: link,
-      str: `<link rel="${link.rel}" href="${
-        attributes.url
-      }" ${crossOriginAttr} ${retryTimesAttr} ${
-        link.as ? `as="${link.as}"` : ''
-      } ${ruleIndexAttr} ${originalQueryAttr}></link>`,
-    };
+    return link;
   }
 }
 
 function reloadElementResource(
   origin: HTMLElement,
-  fresh: { element: HTMLElement; str: string },
+  freshElement: HTMLElement,
   attributes: ScriptElementAttributes,
 ) {
   if (origin instanceof HTMLScriptElement) {
     if (attributes.isAsync) {
-      document.body.appendChild(fresh.element);
+      document.body.appendChild(freshElement);
     } else {
       console.warn(
         ERROR_PREFIX,
@@ -172,7 +145,7 @@ function reloadElementResource(
   }
 
   if (origin instanceof HTMLLinkElement) {
-    document.getElementsByTagName('head')[0].appendChild(fresh.element);
+    document.getElementsByTagName('head')[0].appendChild(freshElement);
   }
 
   if (origin instanceof HTMLImageElement) {
@@ -193,7 +166,7 @@ function retry(rules: NormalizedRuntimeRetryOptions[], e: Event) {
   // If the requested failed chunk is async chunk，skip it, because async chunk will be retried by asyncChunkRetry runtime
   if (
     typeof window !== 'undefined' &&
-    Object.keys(window.__RB_ASYNC_CHUNKS__ || {}).some((chunkName) => {
+    Object.keys(window.__RB_ASYNC_CHUNKS__ || {}).some(chunkName => {
       return url.indexOf(chunkName) !== -1;
     })
   ) {
@@ -309,7 +282,7 @@ function registerInitialChunkRetry() {
     ) {
       document.addEventListener(
         'error',
-        (e) => {
+        e => {
           if (e && e.target instanceof Element) {
             try {
               retry(config, e);
@@ -322,7 +295,7 @@ function registerInitialChunkRetry() {
       );
       document.addEventListener(
         'load',
-        (e) => {
+        e => {
           if (e && e.target instanceof Element) {
             try {
               load(config, e);
