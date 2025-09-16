@@ -1,6 +1,6 @@
 {
   "name": "@rsbuild/plugin-assets-retry",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "An Rsbuild plugin to automatically resend requests when static assets fail to load.",
   "repository": "https://github.com/rspack-contrib/rsbuild-plugin-assets-retry",
   "license": "MIT",
