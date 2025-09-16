@@ -1,6 +1,7 @@
 {
   "name": "@rsbuild/plugin-assets-retry",
   "version": "1.4.2",
+  "description": "An Rsbuild plugin to automatically resend requests when static assets fail to load.",
   "repository": "https://github.com/rspack-contrib/rsbuild-plugin-assets-retry",
   "license": "MIT",
   "type": "module",
@@ -17,19 +18,19 @@
   "files": ["dist"],
   "scripts": {
     "build": "rslib build",
+    "bump": "npx bumpp",
     "dev": "rslib build --watch",
     "lint": "biome check .",
     "lint:write": "biome check . --write",
     "prepare": "simple-git-hooks && npm run build",
-    "test": "playwright test",
-    "bump": "npx bumpp"
+    "test": "playwright test"
   },
   "simple-git-hooks": {
     "pre-commit": "npm run lint:write"
   },
   "devDependencies": {
-    "@microsoft/api-extractor": "^7.52.13",
     "@biomejs/biome": "^1.9.4",
+    "@microsoft/api-extractor": "^7.52.13",
     "@playwright/test": "^1.55.0",
     "@rsbuild/core": "^1.5.7",
     "@rsbuild/plugin-react": "^1.4.0",
