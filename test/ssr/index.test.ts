@@ -16,11 +16,10 @@ const build = async () => {
   await rsbuild.build();
 };
 
-test('should not work in node environment', async () => {
+test('should not work in node environment and only work in web environment', async () => {
   await build();
 
   // dist/server only contains one file
-  console.log(await fs.readdir(join(__dirname, 'dist/server')), 11111);
   expect((await fs.readdir(join(__dirname, 'dist/server'))).length).toBe(1);
   // only dist/server/index.js exists
   expect(

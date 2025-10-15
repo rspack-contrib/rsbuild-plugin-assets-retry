@@ -13,6 +13,7 @@ export default defineConfig({
   environments: {
     node: {
       output: {
+        sourceMap: false,
         target: 'node',
         distPath: {
           root: 'dist/server',
@@ -31,6 +32,7 @@ export default defineConfig({
         },
       },
       output: {
+        sourceMap: false,
         minify: false,
         filenameHash: false,
       },
