@@ -21,6 +21,7 @@ test('should not work in node environment', async () => {
 
   // dist/server only contains one file
   expect((await fs.readdir(join(__dirname, 'dist/server'))).length).toBe(1);
+  console.log(await fs.readdir(join(__dirname, 'dist/server')), 11111);
   // only dist/server/index.js exists
   expect(
     await fs.access(join(__dirname, 'dist/server/index.js')).then(

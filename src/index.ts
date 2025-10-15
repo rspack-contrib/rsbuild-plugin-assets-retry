@@ -6,7 +6,7 @@ import type {
   NormalizedEnvironmentConfig,
   RsbuildPlugin,
 } from '@rsbuild/core';
-import { ensureAssetPrefix } from '@rsbuild/core';
+import { ensureAssetPrefix, logger } from '@rsbuild/core';
 import serialize from 'serialize-javascript';
 import { AsyncChunkRetryPlugin } from './AsyncChunkRetryPlugin.js';
 import type {
@@ -81,6 +81,12 @@ async function getRetryCode(
   return runtimeCode.replace('__RETRY_OPTIONS__', serialize(runtimeOptions));
 }
 
+function logNoHtmlRegisterWaring() {
+  logger.warn(
+    `[${PLUGIN_ASSETS_RETRY_NAME}] no HTML files are generated in the current environment, so the "initialChunkRetry" script will not be injected. Please make sure to manually include the assets-retry script in your HTML files if needed.`,
+  );
+}
+
 export const pluginAssetsRetry = (
   userOptions: PluginAssetsRetryOptions = {},
 ): RsbuildPlugin => ({
@@ -112,8 +118,12 @@ export const pluginAssetsRetry = (
 
     if (inlineScript) {
       api.modifyHTMLTags(async ({ headTags, bodyTags }, { environment }) => {
+        const { htmlPaths, config } = environment;
+        if (config.output.target === 'web' && Object.entries(htmlPaths).length === 0) {
+          logNoHtmlRegisterWaring();
+        }
         const { minify, crossorigin } = getDefaultValueFromRsbuildConfig(
-          environment.config,
+          config,
         );
         const runtimeOptions = getRuntimeOptions(userOptions, crossorigin);
         const code = await getRetryCode(runtimeOptions, minify);
@@ -131,6 +141,9 @@ export const pluginAssetsRetry = (
     } else {
       api.modifyHTMLTags(
         async ({ headTags, bodyTags }, { assetPrefix, environment }) => {
+          if( environment.config.output.target === 'web' && Object.entries(environment.htmlPaths).length === 0) {
+            logNoHtmlRegisterWaring();
+          }
           const scriptPath = getScriptPath(environment);
           const url = ensureAssetPrefix(scriptPath, assetPrefix);
 
