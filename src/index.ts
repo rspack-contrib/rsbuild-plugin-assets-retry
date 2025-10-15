@@ -112,6 +112,9 @@ export const pluginAssetsRetry = (
 
     if (inlineScript) {
       api.modifyHTMLTags(async ({ headTags, bodyTags }, { environment }) => {
+        if (environment.config.output.target !== 'web') {
+          return { headTags, bodyTags };
+        }
         const { minify, crossorigin } = getDefaultValueFromRsbuildConfig(
           environment.config,
         );
@@ -131,6 +134,9 @@ export const pluginAssetsRetry = (
     } else {
       api.modifyHTMLTags(
         async ({ headTags, bodyTags }, { assetPrefix, environment }) => {
+          if (environment.config.output.target !== 'web') {
+            return { headTags, bodyTags };
+          }
           const scriptPath = getScriptPath(environment);
           const url = ensureAssetPrefix(scriptPath, assetPrefix);
 
@@ -149,10 +155,13 @@ export const pluginAssetsRetry = (
       api.processAssets(
         { stage: 'additional' },
         async ({ sources, compilation, environment }) => {
+          const { config } = environment;
+          if (config.output.target !== 'web') {
+            return;
+          }
           const scriptPath = getScriptPath(environment);
-          const { crossorigin, minify } = getDefaultValueFromRsbuildConfig(
-            environment.config,
-          );
+          const { crossorigin, minify } =
+            getDefaultValueFromRsbuildConfig(config);
           const runtimeOptions = getRuntimeOptions(userOptions, crossorigin);
           const code = await getRetryCode(runtimeOptions, minify);
           compilation.emitAsset(scriptPath, new sources.RawSource(code));
@@ -161,9 +170,8 @@ export const pluginAssetsRetry = (
     }
 
     api.modifyBundlerChain(async (chain, { environment }) => {
-      const { config, htmlPaths } = environment;
-
-      if (!userOptions || Object.keys(htmlPaths).length === 0) {
+      const { config } = environment;
+      if (config.output.target !== 'web') {
         return;
       }
 
