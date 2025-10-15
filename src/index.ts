@@ -119,12 +119,14 @@ export const pluginAssetsRetry = (
     if (inlineScript) {
       api.modifyHTMLTags(async ({ headTags, bodyTags }, { environment }) => {
         const { htmlPaths, config } = environment;
-        if (config.output.target === 'web' && Object.entries(htmlPaths).length === 0) {
+        if (
+          config.output.target === 'web' &&
+          Object.entries(htmlPaths).length === 0
+        ) {
           logNoHtmlRegisterWaring();
         }
-        const { minify, crossorigin } = getDefaultValueFromRsbuildConfig(
-          config,
-        );
+        const { minify, crossorigin } =
+          getDefaultValueFromRsbuildConfig(config);
         const runtimeOptions = getRuntimeOptions(userOptions, crossorigin);
         const code = await getRetryCode(runtimeOptions, minify);
 
@@ -141,7 +143,10 @@ export const pluginAssetsRetry = (
     } else {
       api.modifyHTMLTags(
         async ({ headTags, bodyTags }, { assetPrefix, environment }) => {
-          if( environment.config.output.target === 'web' && Object.entries(environment.htmlPaths).length === 0) {
+          if (
+            environment.config.output.target === 'web' &&
+            Object.entries(environment.htmlPaths).length === 0
+          ) {
             logNoHtmlRegisterWaring();
           }
           const scriptPath = getScriptPath(environment);
