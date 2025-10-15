@@ -112,9 +112,6 @@ export const pluginAssetsRetry = (
 
     if (inlineScript) {
       api.modifyHTMLTags(async ({ headTags, bodyTags }, { environment }) => {
-        if (environment.config.output.target !== 'web') {
-          return { headTags, bodyTags };
-        }
         const { minify, crossorigin } = getDefaultValueFromRsbuildConfig(
           environment.config,
         );
@@ -134,9 +131,6 @@ export const pluginAssetsRetry = (
     } else {
       api.modifyHTMLTags(
         async ({ headTags, bodyTags }, { assetPrefix, environment }) => {
-          if (environment.config.output.target !== 'web') {
-            return { headTags, bodyTags };
-          }
           const scriptPath = getScriptPath(environment);
           const url = ensureAssetPrefix(scriptPath, assetPrefix);
 
