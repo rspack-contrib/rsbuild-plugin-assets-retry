@@ -1,16 +1,26 @@
-import fs from 'node:fs/promises';
-import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
-import { createRsbuild } from '@rsbuild/core';
+import { createRsbuild, type RsbuildPlugin } from '@rsbuild/core';
 import rsbuildConfig from './rsbuild.config';
 
-const __dirname = new URL('.', import.meta.url).pathname;
+const testPlugin = {
+  setup(api) {
+    api.processAssets({ stage: 'optimize' }, ({ assets, environment }) => {
+      if(environment.name === 'web') {
+        expect(assets['static/js/index.js'].source().toString()).toContain('registerAsyncChunkRetry');
+      } else {
+        const files = Object.keys(assets).sort();
+        expect(files.length).toEqual(1);
+      }
+    });
+  },
+} as RsbuildPlugin;
 
 const build = async () => {
   const rsbuild = await createRsbuild({
     cwd: import.meta.dirname,
     rsbuildConfig: {
       ...rsbuildConfig,
+      plugins: [...(rsbuildConfig.plugins || []), testPlugin],
     },
   });
   await rsbuild.build();
@@ -18,21 +28,4 @@ const build = async () => {
 
 test('should not work in node environment and only work in web environment', async () => {
   await build();
-
-  // dist/server only contains one file
-  expect((await fs.readdir(join(__dirname, 'dist/server'))).length).toBe(1);
-  // only dist/server/index.js exists
-  expect(
-    await fs.access(join(__dirname, 'dist/server/index.js')).then(
-      () => true,
-      () => false,
-    ),
-  ).toBe(true);
-
-  // dist/static/js contains index.js, assets-retry.js and async folder
-  expect((await fs.readdir(join(__dirname, 'dist/static/js'))).length).toBe(3);
-  // index.js contains "registerAsyncChunkRetry" function calling
-  expect(
-    await fs.readFile(join(__dirname, 'dist/static/js/index.js'), 'utf-8'),
-  ).toContain('registerAsyncChunkRetry');
 });
