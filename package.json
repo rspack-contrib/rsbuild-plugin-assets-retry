@@ -30,13 +30,13 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@microsoft/api-extractor": "^7.53.1",
+    "@microsoft/api-extractor": "^7.53.3",
     "@playwright/test": "^1.56.1",
-    "@rsbuild/core": "^1.5.17",
+    "@rsbuild/core": "^1.6.0",
     "@rsbuild/plugin-react": "^1.4.1",
-    "@rslib/core": "^0.15.1",
-    "@swc/core": "^1.13.5",
-    "@types/node": "^22.18.10",
+    "@rslib/core": "^0.17.0",
+    "@swc/core": "^1.14.0",
+    "@types/node": "^22.18.13",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@types/serialize-javascript": "^5.0.4",
@@ -55,7 +55,7 @@
       "optional": true
     }
   },
-  "packageManager": "pnpm@10.18.3",
+  "packageManager": "pnpm@10.20.0",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
