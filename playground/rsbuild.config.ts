@@ -58,4 +58,11 @@ export default defineConfig({
     }),
     pluginReact(),
   ],
+  tools: {
+    rspack: {
+      watchOptions: {
+        ignored: [],
+      },
+    },
+  },
 });

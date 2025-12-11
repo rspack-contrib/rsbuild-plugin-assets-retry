@@ -1,0 +1,8 @@
+{
+  "name": "@hello/hello",
+  "version": "0.0.1",
+  "main": "./index.tsx",
+  "peerDependencies": {
+    "react": "18.2.0"
+  }
+}
