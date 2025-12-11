@@ -5,5 +5,14 @@
   "scripts": {
     "dev": "npx rsbuild dev",
     "build": "npx rsbuild build"
+  },
+  "dependencies": {
+    "@hello/hello": "workspace:*",
+    "react": "19.2.1"
+  },
+  "dependenciesMeta": {
+    "@hello/hello": {
+      "injected": true
+    }
   }
 }
